@@ -71,7 +71,8 @@ This system highlights potential issues such as sensor faults, panel soiling, en
 ---
 
 ## 🧩 Repository Structure
-.
+
+```.
 ├── src
 │   ├── digital_twin
 │   ├── predictive_maintenance
@@ -82,6 +83,7 @@ This system highlights potential issues such as sensor faults, panel soiling, en
 │
 ├── Data-Driven Modelling of Solar PV Inverters.pdf
 └── README.md
+```
 ---
 
 ## 🔒 Confidentiality Notice
