@@ -71,18 +71,17 @@ This system highlights potential issues such as sensor faults, panel soiling, en
 ---
 
 ## 🧩 Repository Structure
-/src
-    /digital_twin
-    /predictive_maintenance
-    /survival_analysis
-    /forecasting
-    /anomaly_detection
-    /utils
-/report
-    capstone.Rmd
-    figures/
-    tables/
-
+.
+├── src
+│   ├── digital_twin
+│   ├── predictive_maintenance
+│   ├── survival_analysis
+│   ├── forecasting
+│   ├── anomaly_detection
+│   └── utils
+│
+├── Data-Driven Modelling of Solar PV Inverters.pdf
+└── README.md
 ---
 
 ## 🔒 Confidentiality Notice
