@@ -4,7 +4,7 @@ import sys
 import gc
 import ctypes
 from ctypes import wintypes
-from typing import Optional, cast, Any
+from typing import Optional, cast, Any, Tuple
 from types import TracebackType
 from pathlib import Path
 # thirdpartylib
@@ -152,3 +152,13 @@ class MemoryAwareProcess(object):
         self.logger(f"Available memory: {available:.2f} {unit.upper()}")
 
         return available
+
+    def memory_check(self, lazy_frame: pl.LazyFrame, 
+                     unit: SizeUnit = "mb") -> Tuple[bool, float, float]:
+        """
+        Return True if available memory is greater than estimated in
+        memory dataframe size.
+        """
+        available = self.get_available_memory(unit)
+        size = self.estimate_in_memory_size(lazy_frame, unit)
+        return available > size, available, size
