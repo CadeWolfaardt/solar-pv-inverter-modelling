@@ -1,8 +1,8 @@
 # stdlib
 from pathlib import Path
 # projectlib
-from utils.util import validate_address
-from utils.typing import Verbosity, Address
+from pv_inverter_modeling.utils.util import validate_address
+from pv_inverter_modeling.utils.typing import Verbosity, Address
 
 class Logger(object):
     """

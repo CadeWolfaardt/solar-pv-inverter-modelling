@@ -71,46 +71,52 @@ This system highlights potential issues such as sensor faults, panel soiling, en
 
 ```.
 ├── src/
-│   ├── data/
-│   │   ├── loaders.py
-│   │   └── schemas.py
-│   │
-│   ├── preprocessing/
-│   │   ├── outliers.py
-│   │   ├── interpolation.py
-│   │   └── scaling.py
-│   │
-│   ├── features/
-│   │   ├── builders.py         
-│   │   ├── lagging.py          
-│   │   └── selection.py
-│   │
-│   ├── models/
-│   │   ├── base.py
-│   │   ├── baselines.py
-│   │   ├── linear.py
-│   │   ├── tree.py
-│   │   └── hybrid.py
-│   │
-│   ├── evaluation/
-│   │   ├── metrics.py
-│   │   └── diagnostics.py
-│   │
-│   ├── config/
-│   │   ├── settings.py
-│   │   └── constants.py
-│   │
-│   └── utils/
-│       ├── time.py
-│       ├── logging.py
-│       └── typing.py
+│   └── pv_inverter_modeling
+│       ├── data/
+│       │   ├── loaders.py
+│       │   └── schemas.py
+│       │
+│       ├── preprocessing/
+│       │   ├── outliers.py
+│       │   ├── interpolation.py
+│       │   └── scaling.py
+│       │
+│       ├── features/
+│       │   ├── builders.py         
+│       │   ├── lagging.py          
+│       │   └── selection.py
+│       │
+│       ├── models/
+│       │   ├── base.py
+│       │   ├── baselines.py
+│       │   ├── linear.py
+│       │   ├── tree.py
+│       │   └── hybrid.py
+│       │
+│       ├── evaluation/
+│       │   ├── metrics.py
+│       │   └── diagnostics.py
+│       │
+│       ├── config/
+│       │   ├── settings.py
+│       │   └── constants.py
+│       │
+│       ├── utils/
+│       │   ├── time.py
+│       │   ├── logging.py
+│       │   └── typing.py
+│       │
+│       ├── __init__.py
+│       └── py.typed
 │
 ├── scripts/
+│   ├── anomaly_detection.py
 │   ├── train.py
 │   ├── evaluate.py
 │   └── infer.py
 │
 ├── Data-Driven Modelling of Solar PV Inverters.pdf
+├── pyproject.toml
 └── README.md
 ```
 ---

@@ -3,15 +3,15 @@ from typing import Optional, Union
 # thirdpartylib
 import polars as pl
 # projectlib
-from utils.typing import (
+from pv_inverter_modeling.utils.typing import (
     Address, 
     OpenMode, 
     DataMode, 
     Verbosity
 )
-from utils.memory import MemoryAwareProcess
-from utils.util import validate_address
-from config.private_map import ENTITY_MAP, REVERSE_ENTITY_MAP
+from pv_inverter_modeling.utils.memory import MemoryAwareProcess
+from pv_inverter_modeling.utils.util import validate_address
+from pv_inverter_modeling.config.private_map import ENTITY_MAP, REVERSE_ENTITY_MAP
 
 class Open(MemoryAwareProcess):
     """Read and write parquets with polars."""
@@ -26,7 +26,15 @@ class Open(MemoryAwareProcess):
 
     def map_names(self, lf: pl.LazyFrame) -> pl.LazyFrame:
         """Map private column names to public names."""
-        return lf.rename(ENTITY_MAP)
+        schema = lf.collect_schema()
+    
+        safe_map = {
+            old: new
+            for old, new in ENTITY_MAP.items()
+            if old in schema
+        }
+
+        return lf.rename(safe_map)
 
     def low_mem_state(self, lf: pl.LazyFrame, low_mem: bool) -> None:
         """
@@ -52,7 +60,9 @@ class Open(MemoryAwareProcess):
             msg = "Source not defined in class instance construction."
             raise ValueError(msg)
         
-        lf = pl.scan_parquet(self.source)
+        lf = pl.scan_parquet( # type: ignore[reportUnknownMemberType]
+            self.source
+        ) 
         lf = self.map_names(lf)
         self.low_mem_state(lf, low_mem)
         return lf
@@ -79,7 +89,9 @@ class Open(MemoryAwareProcess):
         instance.
         """
         location = validate_address(location)
-        lf = pl.scan_parquet(location / name)
+        lf = pl.scan_parquet( # type: ignore[reportUnknownMemberType]
+            location / name
+        ) 
         self.low_mem_state(lf, low_mem)
         if map_cols:
             lf = lf.rename(ENTITY_MAP)

@@ -7,9 +7,9 @@ from typing import (
 # thirdpartylib
 import polars as pl
 # projectlib
-from data.schemas import Column, Metric
-from config.constants import MAD_CONSISTENCY_CONSTANT
-from utils.typing import InferedFloat
+from pv_inverter_modeling.data.schemas import Column, Metric
+from pv_inverter_modeling.config.constants import MAD_CONSISTENCY_CONSTANT
+from pv_inverter_modeling.utils.typing import InferedFloat
 
 class OutlierDetector(object):
 
@@ -663,19 +663,19 @@ class OutlierDetector(object):
         )
         
         # Define filters for different regimes
-        outliers_1 = self.get_robust_z_outliers(
+        outliers_1, _ = self.get_robust_z_outliers(
             efficiency, 
             "efficiency", 
             Metric.AC_POWER, 
             mask=("constrained_regime", True)
         )
-        outliers_2 = self.get_robust_z_outliers(
+        outliers_2, _ = self.get_robust_z_outliers(
             outliers_1, 
             "efficiency", 
             Metric.AC_POWER, 
             mask=("normal_regime", True)
             )
-        outliers_3 = self.get_robust_z_outliers(
+        outliers_3, _ = self.get_robust_z_outliers(
             outliers_2, 
             "efficiency", 
             Metric.AC_POWER, 
@@ -692,7 +692,7 @@ class OutlierDetector(object):
             keys: Tuple[Column, ...] = (Column.DEVICE, Column.TIMESTAMP), 
             mask: Optional[Tuple[str, bool]] = None, 
             z_thresh: InferedFloat = 3.5
-        ) -> pl.LazyFrame:
+        ) -> Tuple[pl.LazyFrame, pl.LazyFrame]:
         """
         Mask outliers in `target` using the robust-Z score computed on 
         `test_col`.
@@ -741,12 +741,12 @@ class OutlierDetector(object):
 
         outliers = (
             outliers
-            .select([*keys, test_col, target])
+            .select([*keys, test_col])
             # Filter for real values
             .filter(pl.col(test_col).is_finite())
-            # Get median of target
+            # Get median of test_col
             .with_columns(pl.col(test_col).median().alias(f"median"))
-            # Get abs deviation of target from median
+            # Get abs deviation of test_col from median
             .with_columns(
                 (pl.col(test_col) - pl.col(f"median")).abs().alias("abs_dev")
             )
@@ -783,34 +783,33 @@ class OutlierDetector(object):
 
         # Get target dtype
         dtype = lf.collect_schema().get(target)
-        outliers = (
+        outliers_flg = (
             outliers
             # Compute outlier boolean flag
             .with_columns(
                 pl.col(f"robust_z").abs().gt(z_thresh).alias("is_outlier")
             )
             # Mask outliers with null
-            .select([*keys, target, "is_outlier"])
-            .with_columns(
-                pl.when(pl.col("is_outlier"))
-                .then(pl.lit(None, dtype=dtype))
-                .otherwise(pl.col(target))
-                .alias(target)
-            )
-            .select([*keys, target])
-            .with_columns(pl.lit(True).alias("__matched__"))
+            .select([*keys, "robust_z", "is_outlier"])
         )
         suffix = "_mask"
         masked = (
             lf
-            .join(outliers, on=keys, how="left", suffix=suffix)
+            .join(
+                outliers_flg.select([*keys, "is_outlier"]), 
+                on=keys, 
+                how="left", 
+                suffix=suffix
+            )
             .with_columns(
-                pl.when(pl.col("__matched__"))
-                .then(pl.col(f"{target}{suffix}"))
+                pl.when(
+                    pl.col(f"is_outlier")
+                )
+                .then(pl.lit(None, dtype=dtype))
                 .otherwise(pl.col(target))
                 .alias(target)
             )
-            .drop([f"{target}{suffix}", "__matched__"])
+            .drop([f"is_outlier"])
         )
 
-        return masked
+        return masked, outliers_flg

@@ -12,8 +12,8 @@ import psutil
 from IPython.core.getipython import get_ipython
 import polars as pl
 # projectlib
-from utils.typing import Verbosity, Address, SizeUnit
-from utils.logging import Logger
+from pv_inverter_modeling.utils.typing import Verbosity, Address, SizeUnit
+from pv_inverter_modeling.utils.logging import Logger
 
 class MemoryAwareProcess(object):
     """

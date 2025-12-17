@@ -1,8 +1,10 @@
 # stdlib
 from pathlib import Path
 from datetime import datetime
+# thirdpartylib
+from IPython.core.getipython import get_ipython
 # projectlib
-from utils.typing import Address, OpenMode
+from pv_inverter_modeling.utils.typing import Address, OpenMode
 
 def validate_address(address: Address, extension: str = ".parquet", 
                      mode: OpenMode = 'r') -> Path:
@@ -37,3 +39,17 @@ def validate_address(address: Address, extension: str = ".parquet",
             )
         
         return address
+
+
+def running_in_ipython_kernel():
+    """Determine if current session is an IPython Kernel."""
+    try:
+        ip = get_ipython()
+        if ip is None:
+            return False
+        return (
+            "zmqshell" in str(type(ip)).lower() 
+            or "terminalinteractiveshell" in str(type(ip)).lower()
+        )
+    except Exception:
+        return False

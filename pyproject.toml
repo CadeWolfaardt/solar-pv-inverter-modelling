@@ -1,0 +1,13 @@
+[project]
+name = "pv-inverter-modelling"
+version = "0.1.0"
+description = "Data-driven modelling of Solar PV inverters featuring Anomaly detection, Digital Twin, Forecasting, Survival Analysis, and Predictive Maintenance"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pv_inverter_dt = ["py.typed"]

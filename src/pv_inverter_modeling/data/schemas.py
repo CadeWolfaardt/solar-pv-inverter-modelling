@@ -45,4 +45,5 @@ class Metric(str, Enum):
     DC_BUS_VOLTAGE = 'dc_bus'
     ADMISSION_TEMP = 'admission_temp'
     IGBT_TEMP = 'igbt_temp'
+    INTERNAL_TEMP = 'internal_temp'
     POA_MEDIAN = 'poa_median'
