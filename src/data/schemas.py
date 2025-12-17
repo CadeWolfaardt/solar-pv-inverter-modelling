@@ -1,6 +1,13 @@
 from enum import Enum
 
 class Column(str, Enum):
+    """
+    Public column identifiers defining dataset structure only.
+    
+    Note:
+        These enums define schema-level identifiers only.
+        No site-specific, temporal, or operational values are included.
+    """
     DEVICE = 'device'
     TYPE = 'type' 
     SITE = 'site'
@@ -10,10 +17,18 @@ class Column(str, Enum):
     VALUE = 'value'
 
 class Metric(str, Enum):
+    """
+    Public metric identifiers.
+
+    Note:
+        These enums define schema-level identifiers only.
+        No metric values, units, timestamps, or site-specific
+        information are exposed in the public repository.
+    """
     AC_POWER = 'ac_power'
     AC_PHASE_A =  'phase_a'
-    AC_PHASE_B =  'phase_a'
-    AC_PHASE_C =  'phase_a'
+    AC_PHASE_B =  'phase_b'
+    AC_PHASE_C =  'phase_c'
     AC_LINE_AB = 'line_ab'
     AC_LINE_BC = 'line_bc'
     AC_LINE_CA = 'line_ca'
@@ -21,3 +36,9 @@ class Metric(str, Enum):
     POWER_FACTOR = 'power_factor'
     SVA = 'sva' 
     VAR = 'var'
+    DC_CURRENT = 'dc_current'
+    DC_POWER = 'dc_power'
+    DC_VOLTAGE = 'dc_voltage'
+    DC_BUS_VOLTAGE = 'dc_bus'
+    ADMISSION_TEMP = 'admission_temp'
+    IGBT_TEMP = 'igbt_temp'
