@@ -1,5 +1,12 @@
 # stdlib
-from typing import Literal, Union, Tuple, TypeAliasType, get_args, overload
+from typing import (
+    Literal, 
+    Union, 
+    Tuple, 
+    TypeAliasType, 
+    get_args, 
+    overload
+)
 from pathlib import Path
 
 # Verbosity for classes, functions, methods, etc.
@@ -16,7 +23,13 @@ type SizeUnit = Literal["b", "kb", "mb", "gb", "tb"]
 # feature set
 type DataMode = Literal["baseline", "full"]
 # Types of type aliases
-type TypeValues = Union[TypeAliasType, Tuple[TypeAliasType, ...], Tuple[str, ...]]
+type TypeValues = Union[
+    TypeAliasType, 
+    Tuple[TypeAliasType, ...], 
+    Tuple[str, ...]
+]
+# Type for either infering empirically or using a defined value
+type InferedFloat = Union[Literal["infer"], float]
 
 # Overloads for custom_get_args function
 @overload
