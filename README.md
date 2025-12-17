@@ -63,10 +63,7 @@ This system highlights potential issues such as sensor faults, panel soiling, en
 
 ## 🛠 Technologies Used
 - Python: Polars, NumPy, Pandas, Scikit-learn, XGBoost, TensorFlow/Keras  
-- R: Survival analysis, forecasting, and reporting through R Markdown  
-- Machine Learning: LSTM, ensemble methods, linear models  
-- LaTeX/Quarto: Full academic report generation  
-- GitHub Actions (optional): reproducible builds  
+- Machine Learning: LSTM, ensemble methods, linear models
 
 ---
 
