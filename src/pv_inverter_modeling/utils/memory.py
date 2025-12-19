@@ -118,7 +118,7 @@ class MemoryAwareProcess(object):
             self.__collect_garbage_ipython()
             if sys.platform.startswith("win"):
                 self.__release_os_memory_windows()
-        self.__get_memory_usage()
+        self.__get_memory_usage(verbosity=1)
     
     def estimate_in_memory_size(self, lazy_frame: pl.LazyFrame, 
                                   unit: SizeUnit = "mb") -> float:
