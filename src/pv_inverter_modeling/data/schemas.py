@@ -47,3 +47,7 @@ class Metric(str, Enum):
     IGBT_TEMP = 'igbt_temp'
     INTERNAL_TEMP = 'internal_temp'
     POA_MEDIAN = 'poa_median'
+    EFFICIENCY = 'efficiency'
+
+# Keys for sorting data
+KEYS = (Column.DEVICE, Column.TIMESTAMP)
