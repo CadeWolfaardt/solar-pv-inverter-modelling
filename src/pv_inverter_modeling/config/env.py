@@ -23,6 +23,7 @@ def fetch_var(name: str) -> str:
 # Load env variables
 load_dotenv()
 
+RAW_DATA_ROOT = Path(fetch_var("RAW_DATA_ROOT"))
 DATA_ROOT = Path(fetch_var("DATA_ROOT"))
 ANOMALY_DATA = Path(fetch_var("ANOMALY_DATA"))
 ANOMALY_P_RATED = float(fetch_var("ANOMALY_P_RATED"))
