@@ -26,9 +26,9 @@ class Metric(str, Enum):
         information are exposed in the public repository.
     """
     AC_POWER = 'ac_power'
-    AC_PHASE_A =  'phase_a'
-    AC_PHASE_B =  'phase_b'
-    AC_PHASE_C =  'phase_c'
+    AC_CURRENT_A =  'ac_current_a'
+    AC_CURRENT_B =  'ac_current_b'
+    AC_CURRENT_C =  'ac_current_c'
     AC_LINE_AB = 'line_ab'
     AC_LINE_BC = 'line_bc'
     AC_LINE_CA = 'line_ca'
