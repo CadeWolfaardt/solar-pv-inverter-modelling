@@ -15,7 +15,7 @@ from pv_inverter_modeling.config.env import (
 from pv_inverter_modeling.config.constants import MIN_POA
 from pv_inverter_modeling.data.loaders import Open
 from pv_inverter_modeling.preprocessing.outliers import OutlierDetector
-from pv_inverter_modeling.data.schemas import Metric, Column
+from pv_inverter_modeling.data.schemas import Metric, Column, KEYS
 from pv_inverter_modeling.utils.util import running_in_ipython_kernel
 
 def parse_args() -> argparse.Namespace:
@@ -77,7 +77,7 @@ def main() -> None:
     #  is_outlier, avoiding duplication.
     final_df_with_anom = lf.join(
         anom,
-        on=[Column.DEVICE, Column.TIMESTAMP],
+        on=KEYS,
         how="left" # Use a left join to keep all original rows
     )
 
@@ -126,7 +126,7 @@ def main() -> None:
 
     final_df_with_anom = final_df_with_anom.join(
         pr_outlier_status,
-        on=[Column.DEVICE, Column.TIMESTAMP],
+        on=KEYS,
         how='left'
     )
 
