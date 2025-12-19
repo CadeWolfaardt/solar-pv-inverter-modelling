@@ -11,7 +11,11 @@ from pv_inverter_modeling.utils.typing import (
 )
 from pv_inverter_modeling.utils.memory import MemoryAwareProcess
 from pv_inverter_modeling.utils.util import validate_address
-from pv_inverter_modeling.config.private_map import ENTITY_MAP, REVERSE_ENTITY_MAP
+from pv_inverter_modeling.config.private_map import (
+    ENTITY_MAP, 
+    REVERSE_ENTITY_MAP
+)
+
 
 class Open(MemoryAwareProcess):
     """Read and write parquets with polars."""
@@ -25,9 +29,18 @@ class Open(MemoryAwareProcess):
             self.source = validate_address(source, mode=mode)
 
     def map_names(self, lf: pl.LazyFrame) -> pl.LazyFrame:
-        """Map private column names to public names."""
+        """
+        Map private column names to public names and drop unused 
+        columns.
+        """
         schema = lf.collect_schema()
-    
+        # Select known columns
+        safe_select = [
+            col for col in schema 
+            if col in ENTITY_MAP.keys() 
+        ]
+        lf = lf.select(safe_select)
+        # Rename columns
         safe_map = {
             old: new
             for old, new in ENTITY_MAP.items()
@@ -54,17 +67,26 @@ class Open(MemoryAwareProcess):
                 )
                 raise MemoryError(msg)
     
-    def read(self, low_mem: bool = False):
-        """Read parquets from source path defined."""
+    def read(self, multi_file: bool = False,  
+             low_mem: bool = False) -> pl.LazyFrame:
+        """Read parquets from source path defined on construction."""
         if not self.source:
             msg = "Source not defined in class instance construction."
             raise ValueError(msg)
         
+        if multi_file:
+            # All .parquet files found in self.source
+            root = list(self.source.rglob("*.parquet"))
+        else:
+            root = self.source
+        
         lf = pl.scan_parquet( # type: ignore[reportUnknownMemberType]
-            self.source
-        ) 
+            root,
+            low_memory=low_mem
+        )
         lf = self.map_names(lf)
         self.low_mem_state(lf, low_mem)
+
         return lf
 
     def write(self, data: Union[pl.LazyFrame, pl.DataFrame], 
