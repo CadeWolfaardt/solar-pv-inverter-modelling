@@ -138,9 +138,9 @@ class OutlierDetector(object):
             Metric.AC_LINE_AB,
             Metric.AC_LINE_BC,
             Metric.AC_LINE_CA,
-            Metric.AC_PHASE_A,
-            Metric.AC_PHASE_B,
-            Metric.AC_PHASE_C,
+            Metric.AC_CURRENT_A,
+            Metric.AC_CURRENT_B,
+            Metric.AC_CURRENT_C,
             Metric.VAR,
             # Ignore curtailment
             Metric.ACTIVE_LIMIT,
@@ -158,7 +158,7 @@ class OutlierDetector(object):
                 # Use only real values
                 pl.all_horizontal(*(pl.col(c).is_finite() for c in fit))
                 # As values with no daylight dominate the metrics are 
-                # sskewed so we filter for around daylight
+                # skewed so we filter for around daylight
                 # i.e., when AC power is being generated 
                 & (pl.col(Metric.AC_POWER) > 0)
             )
