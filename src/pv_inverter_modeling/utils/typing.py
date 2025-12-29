@@ -10,6 +10,10 @@ from typing import (
     overload,
 )
 from pathlib import Path
+# thirdpartylib
+from polars import DataFrame as PolarsDataFrame
+from polars import LazyFrame as PolarsLazyFrame
+from pandas import DataFrame as PandasDataFrame
 # projectlib
 from pv_inverter_modeling.data.schemas import Column, Metric
 
@@ -79,6 +83,8 @@ type InterpMethod = Literal[
 type InterpMethods = Tuple[InterpMethod, ...]
 # Possible columns
 type Field = Union[Column, Metric]
+# DataFrame for plotting
+type DataFrame = Union[PolarsLazyFrame, PolarsDataFrame, PandasDataFrame]
 # Overloads for custom_get_args function
 @overload
 def custom_get_args(arg: TypeAliasType) -> tuple[str, ...]: ...
