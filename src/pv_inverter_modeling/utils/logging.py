@@ -1,7 +1,7 @@
 # stdlib
 from pathlib import Path
 # projectlib
-from pv_inverter_modeling.utils.util import validate_address
+from pv_inverter_modeling.utils.paths import validate_address
 from pv_inverter_modeling.utils.typing import Verbosity, Address
 
 class Logger(object):
