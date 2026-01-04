@@ -1,16 +1,16 @@
 # stdlib
-from typing import Optional, Union
+from typing import Optional
 # thirdpartylib
 import polars as pl
 # projectlib
 from pv_inverter_modeling.utils.typing import (
     Address, 
-    OpenMode, 
-    DataMode, 
-    Verbosity
+    OpenMode,
+    Verbosity,
+    DataFrame
 )
 from pv_inverter_modeling.utils.memory import MemoryAwareProcess
-from pv_inverter_modeling.utils.util import validate_address
+from pv_inverter_modeling.utils.paths import validate_address
 from pv_inverter_modeling.config.private_map import (
     ENTITY_MAP, 
     REVERSE_ENTITY_MAP
@@ -18,13 +18,19 @@ from pv_inverter_modeling.config.private_map import (
 
 
 class Open(MemoryAwareProcess):
-    """Read and write parquets with polars."""
+    """
+    Read parquets with polars and write to parquet with polars or 
+    pandas.
+    """
 
-    def __init__(self, source: Optional[Address] = None, mode: OpenMode = "r",
-                 data_mode: DataMode = "full", verbose: Verbosity = 0) -> None:
+    def __init__(
+            self, 
+            source: Optional[Address] = None, 
+            mode: OpenMode = "r", 
+            verbose: Verbosity = 0
+        ) -> None:
         super().__init__(verbose=verbose)
         self.mode = mode
-        self.data_mode = data_mode
         if source:
             self.source = validate_address(source, mode=mode)
 
@@ -89,9 +95,11 @@ class Open(MemoryAwareProcess):
 
         return lf
 
-    def write(self, data: Union[pl.LazyFrame, pl.DataFrame], 
+    def write(self, data: DataFrame, 
               reverse_mapping: bool = False) -> None:
-        """Write polars frames to parquet using source path."""
+        """
+        Write polars and pandas frames to parquet using source path.
+        """
         if not self.source:
             msg = "Source not defined in class instance construction."
             raise ValueError(msg)
@@ -100,8 +108,10 @@ class Open(MemoryAwareProcess):
             data = data.rename(REVERSE_ENTITY_MAP)
         if isinstance(data, pl.LazyFrame):
             data.sink_parquet(self.source)
-        else:
+        elif isinstance(data, pl.DataFrame):
             data.write_parquet(self.source)
+        else:
+            data.to_parquet(self.source, index=False)
     
     def load(self, location: Address, name: str, map_cols: bool = False, 
              reverse_map_cols: bool = False, 
