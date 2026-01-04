@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import StrEnum
 
-class Column(str, Enum):
+class Column(StrEnum):
     """
     Public column identifiers defining dataset structure only.
     
@@ -16,7 +16,7 @@ class Column(str, Enum):
     METRIC = 'metric' 
     VALUE = 'value'
 
-class Metric(str, Enum):
+class Metric(StrEnum):
     """
     Public metric identifiers.
 
@@ -29,6 +29,7 @@ class Metric(str, Enum):
     AC_CURRENT_A =  'ac_current_a'
     AC_CURRENT_B =  'ac_current_b'
     AC_CURRENT_C =  'ac_current_c'
+    AC_CURRENT_MAX = 'ac_current_max'
     AC_LINE_AB = 'line_ab'
     AC_LINE_BC = 'line_bc'
     AC_LINE_CA = 'line_ca'
@@ -40,15 +41,22 @@ class Metric(str, Enum):
     SVA_LIMIT = 'sva_limit'
     VAR_LIMIT = 'var_limit'
     DC_CURRENT = 'dc_current'
+    DC_CURRENT_MAX = 'dc_current_max'
     DC_POWER = 'dc_power'
     DC_VOLTAGE = 'dc_voltage'
     DC_BUS_VOLTAGE = 'dc_bus'
+    DC_BATT_BUS_VOLTAGE = 'dc_batt_bus'
     ADMISSION_TEMP = 'admission_temp'
     IGBT_TEMP = 'igbt_temp'
     INTERNAL_TEMP = 'internal_temp'
+    ENERGY_DELIVERED = 'energy_delivered'
+    ENERGY_DELIVERED_DAILY = 'energy_delivered_daily'
+    ENERGY_RECEIVED = 'energy_recieved'
+    DAILY_REACTIVE_POWER = 'daily_reactive_power'
+    MONTHLY_REACTIVE_POWER = 'monthly_reactive_power'
     POA_MEDIAN = 'poa_median'
     EFFICIENCY = 'efficiency'
     MEAN_POWER = 'mean_ac_power'
 
 # Keys for sorting data
-KEYS = (Column.DEVICE, Column.TIMESTAMP)
+KEYS = (Column.DEVICE.value, Column.TIMESTAMP.value)
