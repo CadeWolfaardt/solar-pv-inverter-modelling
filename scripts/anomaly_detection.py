@@ -16,7 +16,7 @@ from pv_inverter_modeling.config.constants import MIN_POA
 from pv_inverter_modeling.data.loaders import Open
 from pv_inverter_modeling.preprocessing.outliers import OutlierDetector
 from pv_inverter_modeling.data.schemas import Metric, Column, KEYS
-from pv_inverter_modeling.utils.util import running_in_ipython_kernel
+from pv_inverter_modeling.utils.runtime import running_in_ipython_kernel
 
 def parse_args() -> argparse.Namespace:
     """Parse input arguments for Anomaly Detection."""
@@ -200,7 +200,7 @@ def main() -> None:
         f"AC Power Over Time for Device: {sample_device_name} "
         "with Overall Anomalies"
     )
-    plt.xlabel("Event Local Time")
+    plt.xlabel("Timestamp")
     plt.ylabel("AC Power")
     plt.grid(True)
     plt.xticks(rotation=45)
