@@ -48,6 +48,7 @@ class Metric(str, Enum):
     INTERNAL_TEMP = 'internal_temp'
     POA_MEDIAN = 'poa_median'
     EFFICIENCY = 'efficiency'
+    MEAN_POWER = 'mean_ac_power'
 
 # Keys for sorting data
 KEYS = (Column.DEVICE, Column.TIMESTAMP)
