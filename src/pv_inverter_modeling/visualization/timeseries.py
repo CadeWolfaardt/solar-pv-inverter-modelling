@@ -225,7 +225,7 @@ class Plot(object):
                 df = df.dropna( # pyright: ignore[reportUnknownMemberType]
                     subset=[x, y]
                 )
-            df = df.sort_values(KEYS)
+            df = df.sort_values([*KEYS])
         if df.empty:
             return ax
         # Plot
