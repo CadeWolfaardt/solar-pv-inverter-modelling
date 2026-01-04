@@ -28,7 +28,7 @@ from pv_inverter_modeling.config.env import (
     BASE_INTERPOLATION_MAP,
     DATA_ROOT
 )
-from pv_inverter_modeling.utils.util import validate_address
+from pv_inverter_modeling.utils.paths import validate_address
 
 INTERPOLATION_METHODS: InterpMethods = (
     "linear", 
