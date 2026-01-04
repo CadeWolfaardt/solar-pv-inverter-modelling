@@ -60,6 +60,13 @@ DATA_ROOT = Path(fetch_var("DATA_ROOT"))
 ANOMALY_DATA = Path(fetch_var("ANOMALY_DATA"))
 ANOMALY_P_RATED = float(fetch_var("ANOMALY_P_RATED"))
 ANOMALY_SAMPLE_DEVICE = fetch_var("ANOMALY_SAMPLE_DEVICE")
+PDM_SAMPLE_DEVICE = fetch_var("PDM_SAMPLE_DEVICE")
+SITE_NAME = fetch_var("SITE_NAME")
+LAT = float(fetch_var("LAT"))
+LON = float(fetch_var("LON"))
+SITE_TZ = fetch_var("SITE_TZ")
+COUNTRY = fetch_var("COUNTRY")
+DEVICE_RATING = float(fetch_var("DEVICE_RATING"))
 DAYLIGHT_MAP = cast(
     Dict[int, Tuple[int, int]],
     fetch_json_map("DAYLIGHT_MAP_JSON", int, lambda v: tuple(v))
