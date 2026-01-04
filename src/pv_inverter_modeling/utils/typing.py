@@ -85,6 +85,17 @@ type InterpMethods = Tuple[InterpMethod, ...]
 type Field = Union[Column, Metric]
 # DataFrame for plotting
 type DataFrame = Union[PolarsLazyFrame, PolarsDataFrame, PandasDataFrame]
+# Aggregation functions for pvioting table
+type Aggregation = Literal[
+    'min',
+    'max',
+    'first',
+    'last',
+    'sum',
+    'mean',
+    'median',
+    'len',
+]
 # Overloads for custom_get_args function
 @overload
 def custom_get_args(arg: TypeAliasType) -> tuple[str, ...]: ...
