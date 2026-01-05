@@ -96,6 +96,13 @@ type Aggregation = Literal[
     'median',
     'len',
 ]
+# Engine for collecting polars lazyframe to dataframe
+type CollectEngine = Literal[
+    'auto',
+    'in-memory',
+    'streaming',
+    'gpu'
+]
 # Overloads for custom_get_args function
 @overload
 def custom_get_args(arg: TypeAliasType) -> tuple[str, ...]: ...
