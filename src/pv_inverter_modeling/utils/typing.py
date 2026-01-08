@@ -11,9 +11,9 @@ from typing import (
 )
 from pathlib import Path
 # thirdpartylib
-from polars import DataFrame as PolarsDataFrame
-from polars import LazyFrame as PolarsLazyFrame
-from pandas import DataFrame as PandasDataFrame
+from polars.lazyframe.frame import LazyFrame as PolarsLazyFrame
+from polars.dataframe.frame import DataFrame as PolarsDataFrame
+from pandas.core.frame import DataFrame as PandasDataFrame
 # projectlib
 from pv_inverter_modeling.data.schemas import Column, Metric
 
