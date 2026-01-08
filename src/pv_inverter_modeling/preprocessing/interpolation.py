@@ -1,5 +1,14 @@
 # stdlib
-from typing import Tuple, List, Optional, Unpack, Dict, Union, Iterable, cast
+from typing import (
+    Tuple, 
+    List, 
+    Optional, 
+    Unpack, 
+    Dict, 
+    Union, 
+    Iterable, 
+    cast
+)
 from datetime import datetime
 # thirdpartylib
 import numpy as np
@@ -335,7 +344,7 @@ class InterpolationTester(object):
     def get_device_sep_dfs(
             self, 
             lf: pl.LazyFrame, 
-            cols_to_drop: Optional[Iterable[Field]] = None, 
+            cols_to_drop: Optional[Iterable[str]] = None, 
             pivot_df: bool = False
         ) -> Dict[str, pd.DataFrame]:
         """
