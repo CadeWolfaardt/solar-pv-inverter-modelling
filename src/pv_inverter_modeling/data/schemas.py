@@ -26,10 +26,15 @@ class Metric(StrEnum):
         information are exposed in the public repository.
     """
     AC_POWER = 'ac_power'
+    AC_POWER_A = 'ac_power_a'
+    AC_POWER_B = 'ac_power_b'
+    AC_POWER_C = 'ac_power_c'
+    AC_CURRENT = 'ac_current'
     AC_CURRENT_A =  'ac_current_a'
     AC_CURRENT_B =  'ac_current_b'
     AC_CURRENT_C =  'ac_current_c'
     AC_CURRENT_MAX = 'ac_current_max'
+    AC_VOLTAGE = 'ac_voltage'
     AC_LINE_AB = 'line_ab'
     AC_LINE_BC = 'line_bc'
     AC_LINE_CA = 'line_ca'
