@@ -6,14 +6,27 @@ from typing import (
     Tuple, 
     TypeAliasType,
     TypedDict,
+    Callable,
+    Dict,
+    Sequence,
+    Optional,
+    TypeVar,
+    TypeAlias,
+    Any,
+    NotRequired,
     get_args, 
     overload,
 )
 from pathlib import Path
 # thirdpartylib
+from numpy import ndarray
 from polars.lazyframe.frame import LazyFrame as PolarsLazyFrame
 from polars.dataframe.frame import DataFrame as PolarsDataFrame
+from polars import Series as plSeries
 from pandas.core.frame import DataFrame as PandasDataFrame
+from pandas import Series as pdSeries
+from sklearn.linear_model import LinearRegression
+from xgboost import XGBRegressor
 # projectlib
 from pv_inverter_modeling.data.schemas import Column, Metric
 
@@ -102,6 +115,62 @@ type CollectEngine = Literal[
     'in-memory',
     'streaming',
     'gpu'
+]
+# Definition for evaluation.metrics
+type ArrayLike1D = Union[
+    Sequence[float],
+    ndarray,
+    pdSeries,
+    plSeries,
+]
+# Forecast training function return type
+type ForecastMetrics = Dict[str, float]
+ModelT = TypeVar("ModelT")
+ForecastTrainingResult: TypeAlias = tuple[
+    Optional[ForecastMetrics],
+    Optional[ModelT],
+]
+type BaselineForecastResult = tuple[
+    ForecastMetrics,
+    LinearRegression,
+    XGBRegressor,
+]
+type ModelRunResult = Union[
+    ForecastTrainingResult[Any],
+    BaselineForecastResult,
+]
+# Types for Forecast training function registry
+type TrainFn = Callable[..., ModelRunResult]
+type ArgsFn = Callable[
+    [PandasDataFrame, pdSeries, Path],
+    tuple[Any, ...],
+]
+BaselineSaveFn: TypeAlias = Callable[
+    [BaselineForecastResult], 
+    Any
+]
+ForecastSaveFn: TypeAlias = Callable[
+    [ForecastTrainingResult[Any]], 
+    Any
+]
+SaveFn: TypeAlias = Union[BaselineSaveFn, ForecastSaveFn]
+
+class BaselineRegistryEntry(TypedDict):
+    kind: Literal["baseline"]
+    fn: Callable[..., BaselineForecastResult]
+    args: ArgsFn
+    save: List[Tuple[str, BaselineSaveFn]]
+
+class ForecastRegistryEntry(TypedDict):
+    kind: Literal["forecast"]
+    fn: Callable[..., ForecastTrainingResult[Any]]
+    args: ArgsFn
+    save: List[Tuple[str, ForecastSaveFn]]
+    skip_if_none: NotRequired[bool]
+
+ModelRegistryEntry = Union[
+    BaselineRegistryEntry,
+    ForecastRegistryEntry,
 ]
 # Overloads for custom_get_args function
 @overload
