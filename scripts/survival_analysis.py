@@ -88,7 +88,7 @@ class DataPipeline(object):
             lf: pl.LazyFrame,
             *,
             freq: str = '5m',
-    ) -> np.ndarray:
+        ) -> np.ndarray:
         """
         Convert sparse intraday time-series data into fixed-length daily 
         arrays.
