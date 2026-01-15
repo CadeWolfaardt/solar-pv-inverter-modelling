@@ -32,7 +32,7 @@ def fetch_json_map(
         name: str, 
         key_cast: Callable[[str], K],
         value_cast: Callable[[Iterable[object]], V],
-        ) -> Dict[K, V]:
+    ) -> Dict[K, V]:
     """Fetch daylight map stored as environment variable."""
     raw = fetch_var(name)
     try:
