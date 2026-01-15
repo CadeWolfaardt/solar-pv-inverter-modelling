@@ -59,17 +59,17 @@ class Open(MemoryAwareProcess):
     
     @overload
     def map_names(
-        self, 
-        data: pl.LazyFrame, 
-        reverse: bool = False
-    ) -> pl.LazyFrame: ...
+            self, 
+            data: pl.LazyFrame, 
+            reverse: bool = False
+        ) -> pl.LazyFrame: ...
 
     @overload
     def map_names(
-        self, 
-        data: pl.DataFrame, 
-        reverse: bool = False
-    ) -> pl.DataFrame: ...
+            self, 
+            data: pl.DataFrame, 
+            reverse: bool = False
+        ) -> pl.DataFrame: ...
 
     def map_names(
             self, 
@@ -247,11 +247,11 @@ class Open(MemoryAwareProcess):
         return lf
 
     def _apply_name_mapping(
-        self,
-        data: DataFrame,
-        *,
-        reverse: bool,
-    ) -> DataFrame:
+            self,
+            data: DataFrame,
+            *,
+            reverse: bool,
+        ) -> DataFrame:
         """
         Apply optional reverse column-name mapping to a 
         DataFrame-like object.
