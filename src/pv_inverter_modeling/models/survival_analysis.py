@@ -3,7 +3,9 @@ from typing import List
 # thirdpartylib
 import numpy as np
 import matplotlib.pyplot as plt
-from lifelines import KaplanMeierFitter
+from lifelines import ( # pyright: ignore[reportMissingTypeStubs]
+    KaplanMeierFitter
+)
 # projectlib
 from pv_inverter_modeling.visualization.timeseries import use_dark_theme
 
