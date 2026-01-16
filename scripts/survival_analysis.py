@@ -27,7 +27,7 @@ class DataPipeline(object):
 
     def __init__(self, path: Address, file: Address) -> None:
         """
-        Initialize the data pipeline and eagerly apply AC filtering.
+        Initialize the data pipeline and lazily apply AC filtering.
 
         Parameters
         ----------
@@ -176,7 +176,7 @@ class DataPipeline(object):
 
         return padded_array
         
-    def select_inverter_km(self, inverter: str) -> np.ndarray:
+    def select_inverter(self, inverter: str) -> np.ndarray:
         """
         Extract a padded daily AC power time series for a single 
         inverter.
@@ -227,7 +227,7 @@ def main() -> None:
     # Initialize data ingestion and preprocessing pipeline
     data_pipeline = DataPipeline(path=path, file=file)
     # Extract padded daily productivity array for a sample inverter
-    data = data_pipeline.select_inverter_km(SA_SAMPLE_DEVICE)
+    data = data_pipeline.select_inverter(SA_SAMPLE_DEVICE)
     # Fit Kaplan–Meier survival model and issue early-warning signal
     klm = KaplanMeierModel(data)
     klm.early_warning()
