@@ -1,10 +1,11 @@
 # stdlib
-from typing import Any
+from typing import Any, Callable, Optional
 from pathlib import Path
 # thirdpartylib
 import joblib # pyright: ignore[reportMissingTypeStubs]
 import torch
 import torch.nn as nn
+from keras import Model # pyright: ignore[reportMissingTypeStubs]
 # projectlib
 from pv_inverter_modeling.utils.typing import Address, Verbosity
 from pv_inverter_modeling.utils.paths import validate_address
@@ -91,3 +92,69 @@ def save_model(
             f"Error saving {model_name} model: {exc}",
             verbosity=0,
         )
+
+def load_keras_model(
+        model_path: Address,
+        *,
+        model_factory: Optional[Callable[[], Model]] = None,
+        load_from_weights: bool = True,
+    ) -> Model:
+    """
+    Load a Keras model from disk, preferring weight-based restoration
+    with an automatic fallback to full model loading.
+
+    This function attempts to restore model weights into a freshly
+    constructed architecture when ``load_from_weights`` is True.
+    If weight loading fails (e.g., incompatible file or missing
+    weights), it falls back to loading a fully serialized model.
+
+    Parameters
+    ----------
+    model_path : Address
+        Path to the saved model weights or serialized model file.
+    model_factory : Optional[Callable[[], keras.Model]]
+        Factory function that returns an uninitialized model with the
+        correct architecture. Required for weight-based loading.
+    load_from_weights : bool, default=True
+        Whether to attempt loading model weights first.
+
+    Returns
+    -------
+    keras.Model
+        Loaded Keras model ready for inference or training.
+
+    Raises
+    ------
+    RuntimeError
+        If the loaded object is not a Keras model.
+    FileNotFoundError
+        If ``model_path`` does not exist.
+    """
+    model_path = validate_address(model_path)
+    # Preferred path: attempt to load weights into a fresh model
+    if load_from_weights and model_factory is not None:
+        try:
+            model = model_factory()
+            model.load_weights(  # pyright: ignore[reportUnknownMemberType]
+                model_path
+            )
+            return model
+        except Exception as exc:
+            # Weight loading failed; fall back to full model loading
+            print(
+                f"[WARN] Failed to load weights from '{model_path}'. "
+                f"Falling back to full model load. Reason: {exc}"
+            )
+
+    # Fallback path: load a fully serialized model
+    loaded = joblib.load(  # pyright: ignore[reportUnknownMemberType]
+        model_path
+    )
+    if not isinstance(loaded, Model):
+        raise RuntimeError(
+            f"Object loaded from '{model_path}' is not a Keras Model "
+            f"(got {type(loaded).__name__})."
+        )
+
+    return loaded
+
