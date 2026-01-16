@@ -98,17 +98,27 @@ type InterpMethods = Tuple[InterpMethod, ...]
 type Field = Union[Column, Metric]
 # DataFrame for plotting
 type DataFrame = Union[PolarsLazyFrame, PolarsDataFrame, PandasDataFrame]
-# Aggregation functions for pvioting table
-type Aggregation = Literal[
+# Aggregation functions for pivoting table
+type GenericAggregation = Literal[
     'min',
     'max',
-    'first',
-    'last',
     'sum',
     'mean',
     'median',
+]
+type PlAggregation = Literal[
+    GenericAggregation,
+    'first',
+    'last',
     'len',
 ]
+type PdAggregation = Literal[
+    GenericAggregation,
+    'count',
+    'std',
+    'var',
+]
+type Aggregation = Union[PdAggregation, PlAggregation]
 # Engine for collecting polars lazyframe to dataframe
 type CollectEngine = Literal[
     'auto',
