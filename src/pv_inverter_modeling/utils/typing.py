@@ -20,6 +20,7 @@ from typing import (
 from pathlib import Path
 # thirdpartylib
 from numpy import ndarray
+from numpy.typing import ArrayLike
 from polars.lazyframe.frame import LazyFrame as PolarsLazyFrame
 from polars.dataframe.frame import DataFrame as PolarsDataFrame
 from polars import Series as plSeries
@@ -182,6 +183,17 @@ ModelRegistryEntry = Union[
     BaselineRegistryEntry,
     ForecastRegistryEntry,
 ]
+# Type dict for matplotlib.pyplot plot function
+class PlotLineSpec(TypedDict):
+    y: ArrayLike
+    x: NotRequired[ArrayLike]
+    plot_type: Literal['line', 'scatter']
+    label: NotRequired[str]
+    linestyle: NotRequired[str]
+    alpha: NotRequired[float]
+    color: NotRequired[str]
+    marker: NotRequired[str]
+    linewidth: NotRequired[float]
 # Overloads for custom_get_args function
 @overload
 def custom_get_args(arg: TypeAliasType) -> tuple[str, ...]: ...
