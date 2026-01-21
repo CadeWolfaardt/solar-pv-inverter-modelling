@@ -10,7 +10,7 @@ from pv_inverter_modeling.data.schemas import Column, Metric
 from pv_inverter_modeling.data.loaders import load_lazyframe
 from pv_inverter_modeling.config.private_map import REVERSE_ENTITY_MAP
 from pv_inverter_modeling.models.survival_analysis import KaplanMeierModel
-from pv_inverter_modeling.config.env import DATA_ROOT, SA_SAMPLE_DEVICE
+from pv_inverter_modeling.config.env import DATA_ROOT, SAMPLE_DEVICE
 
 class DataPipeline(object):
     """
@@ -227,7 +227,7 @@ def main() -> None:
     # Initialize data ingestion and preprocessing pipeline
     data_pipeline = DataPipeline(path=path, file=file)
     # Extract padded daily productivity array for a sample inverter
-    data = data_pipeline.select_inverter(SA_SAMPLE_DEVICE)
+    data = data_pipeline.select_inverter(SAMPLE_DEVICE)
     # Fit Kaplan–Meier survival model and issue early-warning signal
     klm = KaplanMeierModel(data)
     klm.early_warning()

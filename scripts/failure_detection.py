@@ -27,7 +27,7 @@ from pv_inverter_modeling.data.loaders import Open, load_lazyframe, load_pandas
 from pv_inverter_modeling.config.env import (
     RAW_DATA_ROOT, 
     DATA_ROOT, 
-    PDM_SAMPLE_DEVICE,
+    SAMPLE_DEVICE,
     SITE_NAME,
     SITE_TZ,
     LAT,
@@ -1334,14 +1334,14 @@ def filter_for_device(source: Address, out: Address) -> None:
     # Look at head of data
     preview = (
         lf
-        .filter(pl.col(Column.DEVICE) == PDM_SAMPLE_DEVICE)
+        .filter(pl.col(Column.DEVICE) == SAMPLE_DEVICE)
         .select([Column.TIMESTAMP, Column.DEVICE, Column.METRIC, Column.VALUE])
         .limit(10)
         .collect(engine="streaming")
     )
     print(preview)
     # Create lazy subset for sample inverter
-    lf_sample = lf.filter(pl.col(Column.DEVICE) == PDM_SAMPLE_DEVICE)
+    lf_sample = lf.filter(pl.col(Column.DEVICE) == SAMPLE_DEVICE)
     # View row count
     count = lf_sample.select(pl.count()).collect(engine="streaming")
     print(count)
@@ -1382,7 +1382,7 @@ def filter_for_daylight(source: Address, out: Address) -> None:
     # Read the data
     print(
         "Ready to read the data for inverter "
-        f"{PDM_SAMPLE_DEVICE} from: {source}"
+        f"{SAMPLE_DEVICE} from: {source}"
     )
     df = load_pandas(source)
     # View snippet of data

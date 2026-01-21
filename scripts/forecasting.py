@@ -1655,7 +1655,6 @@ def parse_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
-
 def main() -> None:
     """
     Entry point for running the forecasting pipeline from the command 

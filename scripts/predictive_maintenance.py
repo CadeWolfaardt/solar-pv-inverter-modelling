@@ -1,5 +1,5 @@
 # projectlib
-from pv_inverter_modeling.config.env import DATA_ROOT, PDM_SAMPLE_DEVICE
+from pv_inverter_modeling.config.env import DATA_ROOT, SAMPLE_DEVICE
 from pv_inverter_modeling.models.predictive_maintenance import (
     PredictiveMaintenance
 )
@@ -34,7 +34,7 @@ def main() -> None:
     pm = PredictiveMaintenance(
         path=path,
         file=filename,
-        inverter=PDM_SAMPLE_DEVICE,
+        inverter=SAMPLE_DEVICE,
         verbosity=0,
         write_log=False
     )

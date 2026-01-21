@@ -3,14 +3,16 @@ import argparse
 # thirdpartylib
 import matplotlib.pyplot as plt
 import seaborn as sns
-from IPython.display import display
+from IPython.display import (
+    display # pyright: ignore[reportUnknownVariableType]
+)
 import polars as pl
 # projectlib
 from pv_inverter_modeling.config.env import (
     DATA_ROOT, 
     ANOMALY_DATA, 
     ANOMALY_P_RATED, 
-    ANOMALY_SAMPLE_DEVICE
+    SAMPLE_DEVICE
 )
 from pv_inverter_modeling.config.constants import MIN_POA
 from pv_inverter_modeling.data.loaders import Open
@@ -141,7 +143,7 @@ def main() -> None:
     ).collect()
 
     # Re-using the same sample device name
-    sample_device_name = ANOMALY_SAMPLE_DEVICE 
+    sample_device_name = SAMPLE_DEVICE 
 
     # Filter the main DataFrame for the specific device
     device_data_for_plot = final_df_with_anom.filter(
@@ -174,7 +176,7 @@ def main() -> None:
     )
 
     # Create the plot
-    plt.figure(figsize=(18, 8))
+    plt.figure(figsize=(18, 8)) # pyright: ignore[reportUnknownMemberType]
     sns.lineplot(
         data=device_data_for_plot,
         x=Column.TIMESTAMP,
@@ -196,17 +198,17 @@ def main() -> None:
         zorder=5
     )
 
-    plt.title(
+    plt.title( # pyright: ignore[reportUnknownMemberType]
         f"AC Power Over Time for Device: {sample_device_name} "
         "with Overall Anomalies"
     )
-    plt.xlabel("Timestamp")
-    plt.ylabel("AC Power")
-    plt.grid(True)
-    plt.xticks(rotation=45)
-    plt.legend()
+    plt.xlabel("Timestamp") # pyright: ignore[reportUnknownMemberType]
+    plt.ylabel("AC Power") # pyright: ignore[reportUnknownMemberType]
+    plt.grid(True) # pyright: ignore[reportUnknownMemberType]
+    plt.xticks(rotation=45) # pyright: ignore[reportUnknownMemberType]
+    plt.legend() # pyright: ignore[reportUnknownMemberType]
     plt.tight_layout()
-    plt.show()
+    plt.show() # pyright: ignore[reportUnknownMemberType]
 
 if __name__ == "__main__":
     main()
