@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 # projectlib
 from pv_inverter_modeling.utils.typing import Address, Verbosity
 from pv_inverter_modeling.models.io import load_keras_model
-from pv_inverter_modeling.config.env import PDM_SAMPLE_DEVICE
+from pv_inverter_modeling.config.env import SAMPLE_DEVICE
 from pv_inverter_modeling.utils.logging import Logger
 from pv_inverter_modeling.data.schemas import Column
 from pv_inverter_modeling.visualization.timeseries import use_dark_theme
@@ -65,7 +65,7 @@ class PredictiveMaintenance(object):
             path: Address,
             file: Address,
             *,
-            inverter: str = PDM_SAMPLE_DEVICE,
+            inverter: str = SAMPLE_DEVICE,
             verbosity: Verbosity = 0,
             write_log: bool = False,
         ) -> None:
