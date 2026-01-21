@@ -1,5 +1,5 @@
 # stdlib
-from typing import Optional, Union, overload
+from typing import Optional, Union, Iterable, overload
 # thirdpartylib
 import polars as pl
 import pandas as pd
@@ -183,49 +183,67 @@ class Open(MemoryAwareProcess):
                 raise MemoryError(msg)
     
     def read(
-            self, 
+            self,
+            *,
             multi_file: bool = False,  
-            low_mem: bool = False
+            low_mem: bool = False,
+            columns: Optional[Iterable[str]] = None,
         ) -> pl.LazyFrame:
         """
-        Read Parquet data from the configured source path.
+        Lazily read Parquet data from the configured source path.
 
         This method scans one or more Parquet files from the source path
-        defined during class construction and returns a Polars 
-        ``LazyFrame`` representing the dataset. When enabled, column 
-        names are mapped to their public schema and optional low-memory 
-        safety checks are applied before execution.
+        defined during class construction and returns a Polars
+        ``LazyFrame`` representing the dataset. Column names are mapped 
+        to the public schema defined by ``ENTITY_MAP`` prior to any 
+        optional column projection or memory-safety checks.
 
-        The data is always read lazily using ``pl.scan_parquet``; no 
-        materialization occurs inside this method.
+        The dataset is always read lazily using ``pl.scan_parquet``; no
+        materialization occurs within this method.
 
         Parameters
         ----------
         multi_file : bool, optional
             If ``True``, all ``.parquet`` files found recursively under 
-            the source path are scanned as a single dataset. If 
-            ``False``, the source path is treated as a single Parquet 
-            file. Defaults to ``False``.
+            the source path are scanned and combined into a single 
+            logical dataset. If ``False``, the source path is treated as 
+            a single Parquet file. Defaults to ``False``.
+
         low_mem : bool, optional
-            If ``True``, enable low-memory safeguards, including 
-            reduced-memory scanning and a pre-execution memory safety 
+            If ``True``, enable low-memory safeguards, including
+            reduced-memory scanning and a pre-execution memory safety
             check. Defaults to ``False``.
+
+        columns : Iterable[str], optional
+            Optional list of column names (public schema) to project 
+            from the dataset. When provided, only these columns are 
+            retained, reducing I/O, memory usage, and downstream 
+            execution cost.
 
         Returns
         -------
         pl.LazyFrame
-            A lazy Polars query representing the scanned dataset with 
-            mapped column names applied.
+            A lazily evaluated Polars query representing the scanned
+            dataset, with column-name mapping and optional projection
+            applied.
 
         Raises
         ------
         ValueError
             If the source path was not defined during class 
             construction.
+
         MemoryError
             If ``low_mem`` is enabled and the estimated memory required 
             to materialize the dataset exceeds the available memory 
             budget.
+
+        Notes
+        -----
+        - Column projection is applied *after* entity-name mapping and
+        therefore operates on the public column schema.
+        - This method performs no materialization; downstream consumers
+        must explicitly call ``collect()`` to execute the query.
         """
         if not self.source:
             msg = "Source not defined in class instance construction."
@@ -242,6 +260,10 @@ class Open(MemoryAwareProcess):
             low_memory=low_mem
         )
         lf = self.map_names(lf)
+        # Column projection
+        if columns is not None:
+            lf = lf.select(list(columns))
+
         self.low_mem_state(lf, low_mem)
 
         return lf
@@ -432,20 +454,21 @@ def load_lazyframe(
         verbose: Verbosity = 0,
         multi_file: bool = False,
         low_mem: bool = False,
+        columns: Optional[Iterable[str]] = None,
     ) -> pl.LazyFrame:
     """
-    Load a dataset as a Polars LazyFrame using the project I/O 
-    abstraction.
+    Lazily load a Parquet dataset as a Polars ``LazyFrame``.
 
-    This utility function reads one or more Parquet files from the given
-    source address and returns a Polars ``LazyFrame`` without 
-    immediately materializing the data into memory. It provides a 
-    lightweight, standardized entry point for lazy, memory-aware data 
-    processing workflows.
+    This utility function provides a standardized, memory-aware entry
+    point for loading Parquet datasets using the project's I/O
+    abstraction. One or more Parquet files are scanned from the given
+    source address and returned as a Polars ``LazyFrame`` without
+    immediately materializing the data into memory.
 
-    The function delegates all validation, schema handling, and optional
-    memory-safety checks to the ``Open`` context manager, ensuring
-    consistent behavior across the codebase.
+    All path validation, column-name mapping, optional column
+    projection, and memory-safety checks are delegated to the ``Open``
+    context manager, ensuring consistent and centralized dataset access
+    semantics across the codebase.
 
     Parameters
     ----------
@@ -453,23 +476,33 @@ def load_lazyframe(
         Path or address of the dataset to load. May refer to a single
         Parquet file or a directory containing multiple Parquet files,
         depending on ``multi_file``.
+
     verbose : Verbosity, optional
         Verbosity level forwarded to the ``Open`` context manager to
         control diagnostic output. Defaults to ``0``.
+
     multi_file : bool, optional
-        If ``True``, all Parquet files found under ``source`` are read
-        and combined into a single lazy query plan. If ``False``, only
-        the file at ``source`` is read. Defaults to ``False``.
+        If ``True``, all Parquet files found under ``source`` are 
+        scanned and combined into a single logical lazy query. If 
+        ``False``, only the file at ``source`` is scanned. Defaults to 
+        ``False``.
+
     low_mem : bool, optional
         If ``True``, enables low-memory safeguards during dataset
-        loading. The underlying reader may refuse to proceed if
-        available system memory is insufficient. Defaults to ``False``.
+        loading, including a pre-execution memory safety check.
+        Defaults to ``False``.
+
+    columns : Iterable[str], optional
+        Optional list of column names (public schema) to project from
+        the dataset. When provided, only these columns are retained,
+        reducing I/O, memory usage, and downstream execution cost.
 
     Returns
     -------
-    polars.LazyFrame
+    pl.LazyFrame
         A lazily evaluated Polars ``LazyFrame`` representing the 
-        dataset.
+        dataset, with column-name mapping, optional projection, and 
+        memory-safety checks applied.
 
     Raises
     ------
@@ -479,15 +512,21 @@ def load_lazyframe(
 
     Notes
     -----
-    - This function does not materialize the data; downstream operations
-      must explicitly call ``collect()`` to trigger execution.
+    - This function does not materialize the data; downstream consumers
+      must explicitly call ``collect()`` to execute the query.
+    - Column projection operates on the public column schema exposed by
+      the I/O layer.
     - No dataset-specific constants or proprietary values are embedded
       in this function, making it safe for reuse across projects and
       environments.
     """
     lf: pl.LazyFrame | None = None
     with Open(source, verbose=verbose) as o:
-        lf = o.read(multi_file=multi_file, low_mem=low_mem)
+        lf = o.read(
+            multi_file=multi_file, 
+            low_mem=low_mem,
+            columns=columns,
+        )
     if lf is None:
         raise RuntimeError("Failed to read data")
     return lf
@@ -499,45 +538,57 @@ def load_pandas(
         verbose: Verbosity = 0,
         multi_file: bool = False,
         low_mem: bool = False,
+        columns: Optional[Iterable[str]] = None,
     ) -> pd.DataFrame:
     """
-    Load a dataset into a pandas DataFrame via a Polars lazy execution 
-    plan.
+    Load a dataset into a pandas ``DataFrame`` via a Polars lazy 
+    execution plan.
 
-    This function reads a dataset from the given source using the 
-    project's standardized I/O abstraction, materializes it from a 
-    Polars ``LazyFrame`` into memory, and converts the result to a 
-    pandas ``DataFrame``. It serves as a thin convenience wrapper for 
-    workflows that require pandas compatibility while retaining 
-    Polars-based loading and execution semantics.
+    This function provides a convenience wrapper around
+    ``load_lazyframe`` for workflows that require pandas compatibility.
+    The dataset is scanned lazily using Polars, optionally projected to
+    a subset of columns, materialized into memory using the specified
+    collection engine, and converted to a pandas ``DataFrame``.
 
-    Internally, this function delegates dataset access to
-    ``load_lazyframe`` to ensure consistent handling of multi-file 
-    inputs, verbosity, and low-memory safeguards across the codebase.
+    All path validation, column-name mapping, optional column
+    projection, and memory-safety checks are delegated to the project's
+    standardized I/O layer, ensuring consistent dataset access semantics
+    across eager and lazy workflows.
 
     Parameters
     ----------
     source : Address
         Path or address of the dataset to load. May refer to a single
         file or a directory, depending on ``multi_file``.
+
     engine : CollectEngine, optional
         Polars collection engine used when materializing the lazy query
-        plan (e.g., ``"streaming"`` or ``"eager"``). Defaults to
+        plan (e.g., ``"streaming"`` or ``"gpu"``). Defaults to
         ``"streaming"``.
+
     verbose : Verbosity, optional
         Verbosity level forwarded to the underlying I/O layer.
         Defaults to ``0``.
+
     multi_file : bool, optional
-        If ``True``, all compatible files under ``source`` are read and
-        combined into a single logical dataset. Defaults to ``False``.
+        If ``True``, all compatible files under ``source`` are scanned
+        and combined into a single logical dataset. Defaults to
+        ``False``.
+
     low_mem : bool, optional
         If ``True``, enables memory-safety checks during loading and
         collection. Defaults to ``False``.
 
+    columns : Iterable[str], optional
+        Optional list of column names (public schema) to project from
+        the dataset prior to materialization. When provided, only these
+        columns are loaded, reducing I/O, memory usage, and conversion
+        cost.
+
     Returns
     -------
     pandas.DataFrame
-        The fully materialized dataset as a pandas DataFrame.
+        The fully materialized dataset as a pandas ``DataFrame``.
 
     Raises
     ------
@@ -548,6 +599,8 @@ def load_pandas(
     -----
     - This function eagerly materializes the dataset into memory; for
       large datasets, prefer ``load_lazyframe`` and defer collection.
+    - Column projection is applied before materialization and operates
+      on the public column schema exposed by the I/O layer.
     - No dataset-specific constants, paths, or proprietary thresholds
       are embedded in this function.
     """
@@ -556,5 +609,7 @@ def load_pandas(
         verbose=verbose,
         multi_file=multi_file,
         low_mem=low_mem,
+        columns=columns,
+        
     )
     return lf.collect(engine=engine).to_pandas()
