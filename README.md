@@ -72,49 +72,54 @@ This system highlights potential issues such as sensor faults, panel soiling, en
 ```.
 ├── src/
 │   └── pv_inverter_modeling
+│       ├── config/
+│       │   ├── constants.py
+│       │   ├── env.py
+│       │   └── private_map.example.py
+│       │
 │       ├── data/
 │       │   ├── loaders.py
+│       │   ├── naming.py
 │       │   └── schemas.py
 │       │
-│       ├── preprocessing/
-│       │   ├── outliers.py
-│       │   ├── interpolation.py
-│       │   └── scaling.py
-│       │
-│       ├── features/
-│       │   ├── builders.py         
-│       │   ├── lagging.py          
-│       │   └── selection.py
+│       ├── evaluation/
+│       │   └── metrics.py
 │       │
 │       ├── models/
-│       │   ├── base.py
-│       │   ├── baselines.py
-│       │   ├── linear.py
-│       │   ├── tree.py
-│       │   └── hybrid.py
+│       │   ├── forecasting.py
+│       │   ├── io.py
+│       │   ├── predictive_maintenance.py
+│       │   └── survival_analysis.py
 │       │
-│       ├── evaluation/
-│       │   ├── metrics.py
-│       │   └── diagnostics.py
-│       │
-│       ├── config/
-│       │   ├── settings.py
-│       │   └── constants.py
+│       ├── preprocessing/
+│       │   ├── astronomy.py
+│       │   ├── interpolation.py
+│       │   ├── outliers.py
+│       │   └── reshape.py
 │       │
 │       ├── utils/
-│       │   ├── time.py
+│       │   ├── attrs.py
 │       │   ├── logging.py
+│       │   ├── memory.py
+│       │   ├── paths.py
+│       │   ├── runtime.py
 │       │   └── typing.py
+│       │
+│       ├── visualization/
+│       │   └── timeseries.py
 │       │
 │       ├── __init__.py
 │       └── py.typed
 │
 ├── scripts/
 │   ├── anomaly_detection.py
-│   ├── train.py
-│   ├── evaluate.py
-│   └── infer.py
+│   ├── failure_detection.py
+│   ├── forecasting.py
+│   ├── forecasting_decomposition_lstm.py
+│   ├── predictive_maintenance.py
+│   └── survival_analysis.py
 │
+├── .env.example
 ├── Data-Driven Modelling of Solar PV Inverters.pdf
 ├── pyproject.toml
 └── README.md
@@ -126,6 +131,11 @@ This repository contains **no proprietary MN8 data**.
 All datasets have been removed or replaced with placeholders to comply with confidentiality requirements.  
 Only reproducible code and methodological documentation are included.
 
+The `.env.example` file contains placeholder values only.
+All real site-specific configuration must be provided locally via a private `.env` file.
+
+The `private_map.example.py` file contains placeholder values only.
+All real site-specific configuration must be provided locally via a private `private_map.py` file.
 ---
 
 ## 📄 Citation
