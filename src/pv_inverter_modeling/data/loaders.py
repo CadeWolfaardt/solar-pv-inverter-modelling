@@ -1,5 +1,5 @@
 # stdlib
-from typing import Optional, Union, Iterable, overload
+from typing import Optional, Iterable
 # thirdpartylib
 import polars as pl
 import pandas as pd
@@ -13,31 +13,43 @@ from pv_inverter_modeling.utils.typing import (
 )
 from pv_inverter_modeling.utils.memory import MemoryAwareProcess
 from pv_inverter_modeling.utils.paths import validate_address
-from pv_inverter_modeling.config.private_map import (
-    ENTITY_MAP, 
-    REVERSE_ENTITY_MAP
-)
+from pv_inverter_modeling.preprocessing.reshape import apply_entity_mapping
+
 
 class Open(MemoryAwareProcess):
     """
     Context-managed interface for reading and writing Parquet datasets.
 
-    This class provides a unified IO wrapper for working with Parquet 
-    files using Polars (lazy or eager) and pandas, with optional 
-    memory-safety checks inherited from ``MemoryAwareProcess``. It is 
-    designed to act as a lightweight context manager around dataset 
-    access, handling path validation, read/write mode enforcement, and 
+    This class provides a unified IO wrapper for working with Parquet
+    files using Polars (lazy or eager) and pandas, with optional
+    memory-safety checks inherited from ``MemoryAwareProcess``. It is
+    designed to act as a lightweight context manager around dataset
+    access, handling path validation, read/write mode enforcement, and
     verbosity-controlled logging.
 
-    The class does not eagerly load data by default; read operations 
-    return Polars ``LazyFrame`` objects unless explicitly materialized 
+    Schema adaptation (column selection and entity-name mapping) is
+    delegated to the shared ``apply_entity_mapping`` preprocessing
+    utility. This class does not own schema semantics and should not be
+    considered the authoritative source of column definitions or
+    mappings.
+
+    The class does not eagerly load data by default; read operations
+    return Polars ``LazyFrame`` objects unless explicitly materialized
     downstream.
+
+    Notes
+    -----
+    - This class is IO-focused; schema normalization and reshaping are
+      intentionally delegated to preprocessing utilities.
+    - Multiple methods expose column-mapping flags, which may indicate
+      an opportunity to consolidate mapping policy at a higher level
+      (e.g., via a configuration object).
 
     Parameters
     ----------
     source : Address or None, optional
-        Path to the Parquet file or directory to read from or write to. 
-        If provided, the path is validated according to the specified 
+        Path to the Parquet file or directory to read from or write to.
+        If provided, the path is validated according to the specified
         mode.
     mode : OpenMode, optional
         File access mode (e.g., read or write). Defaults to ``"r"``.
@@ -47,94 +59,44 @@ class Open(MemoryAwareProcess):
     """
 
     def __init__(
-            self, 
-            source: Optional[Address] = None, 
-            mode: OpenMode = "r", 
-            verbose: Verbosity = 0
-        ) -> None:
+        self,
+        source: Optional[Address] = None,
+        mode: OpenMode = "r",
+        verbose: Verbosity = 0
+    ) -> None:
+        """
+        Initialize an ``Open`` instance with an optional data source and
+        access mode.
+
+        This constructor configures the I/O context used for subsequent
+        read and write operations. When a source address is provided, it
+        is validated according to the specified access mode. No data is
+        read or written during initialization.
+
+        Parameters
+        ----------
+        source : Address or None, optional
+            Path or address of the dataset to be accessed. If provided,
+            the address is validated immediately according to ``mode``.
+        mode : OpenMode, optional
+            File access mode indicating the intended operation (e.g.,
+            read or write). Defaults to ``"r"``.
+        verbose : Verbosity, optional
+            Verbosity level controlling diagnostic output and inherited
+            by the underlying ``MemoryAwareProcess``. Defaults to ``0``.
+
+        Notes
+        -----
+        - Validation is performed eagerly for the provided source, but
+            no I/O operations are executed during initialization.
+        - The source may be omitted and supplied later by methods that
+            accept explicit paths.
+        """
         super().__init__(verbose=verbose)
         self.mode = mode
         if source:
             self.source = validate_address(source, mode=mode)
     
-    @overload
-    def map_names(
-            self, 
-            data: pl.LazyFrame, 
-            reverse: bool = False
-        ) -> pl.LazyFrame: ...
-
-    @overload
-    def map_names(
-            self, 
-            data: pl.DataFrame, 
-            reverse: bool = False
-        ) -> pl.DataFrame: ...
-
-    def map_names(
-            self, 
-            data: Union[pl.LazyFrame, pl.DataFrame],
-            reverse: bool = False,
-        ) -> Union[pl.LazyFrame, pl.DataFrame]:
-        """
-        Map column names using a predefined entity mapping and drop 
-        unknown columns.
-
-        This function applies a controlled column-selection and renaming
-        step to a Polars DataFrame or LazyFrame. Only columns explicitly
-        defined in ``ENTITY_MAP`` are retained; all other columns are 
-        dropped. Column names are then renamed according to the mapping, 
-        either from private to public names or in reverse, depending on 
-        the ``reverse`` flag.
-
-        The function is schema-aware: for lazy inputs, the schema is 
-        obtained without materializing the data, ensuring compatibility 
-        with lazy execution pipelines.
-
-        Parameters
-        ----------
-        data : pl.DataFrame or pl.LazyFrame
-            Input Polars DataFrame containing columns to be selected and 
-            renamed.
-        reverse : bool, optional
-            If ``False`` (default), map from private/internal column 
-            names to public/exposed names. If ``True``, apply the 
-            reverse mapping from public names back to private/internal 
-            names.
-
-        Returns
-        -------
-        pl.DataFrame or pl.LazyFrame
-            A DataFrame of the same type as the input with only mapped 
-            columns retained and column names renamed according to 
-            ``ENTITY_MAP``.
-        """
-        if isinstance(data, pl.LazyFrame):
-            schema = data.collect_schema()
-        else:
-            schema = data.schema
-        # Select known columns
-        safe_select = [
-            col for col in schema 
-            if col in ENTITY_MAP.keys() 
-        ]
-        data = data.select(safe_select)
-        # Rename columns
-        if reverse:
-            safe_map = {
-                new: old
-                for old, new in ENTITY_MAP.items()
-                if new in schema
-            }
-        else:
-            safe_map = {
-                old: new
-                for old, new in ENTITY_MAP.items()
-                if old in schema
-            }
-
-        return data.rename(safe_map)
-
     def low_mem_state(self, lf: pl.LazyFrame, low_mem: bool) -> None:
         """
         Enforce memory-safety checks when operating in low-memory mode.
@@ -188,15 +150,18 @@ class Open(MemoryAwareProcess):
             multi_file: bool = False,  
             low_mem: bool = False,
             columns: Optional[Iterable[str]] = None,
+            reverse_col_map: bool = False,
+            strict_col_map: bool = False,
         ) -> pl.LazyFrame:
         """
         Lazily read Parquet data from the configured source path.
 
         This method scans one or more Parquet files from the source path
         defined during class construction and returns a Polars
-        ``LazyFrame`` representing the dataset. Column names are mapped 
-        to the public schema defined by ``ENTITY_MAP`` prior to any 
-        optional column projection or memory-safety checks.
+        ``LazyFrame`` representing the dataset. Schema adaptation
+        (column selection and entity-name mapping) is delegated to
+        ``apply_entity_mapping`` and may be applied in either direction
+        depending on the provided flags.
 
         The dataset is always read lazily using ``pl.scan_parquet``; no
         materialization occurs within this method.
@@ -204,9 +169,9 @@ class Open(MemoryAwareProcess):
         Parameters
         ----------
         multi_file : bool, optional
-            If ``True``, all ``.parquet`` files found recursively under 
-            the source path are scanned and combined into a single 
-            logical dataset. If ``False``, the source path is treated as 
+            If ``True``, all ``.parquet`` files found recursively under
+            the source path are scanned and combined into a single
+            logical dataset. If ``False``, the source path is treated as
             a single Parquet file. Defaults to ``False``.
 
         low_mem : bool, optional
@@ -215,16 +180,26 @@ class Open(MemoryAwareProcess):
             check. Defaults to ``False``.
 
         columns : Iterable[str], optional
-            Optional list of column names (public schema) to project 
-            from the dataset. When provided, only these columns are 
-            retained, reducing I/O, memory usage, and downstream 
+            Optional list of column names to project from the dataset.
+            Column names must refer to the schema *after* entity-name
+            mapping has been applied. When provided, only these columns
+            are retained, reducing I/O, memory usage, and downstream
             execution cost.
+
+        reverse_col_map : bool, optional
+            If ``True``, apply the reverse entity-name mapping during
+            schema adaptation. Defaults to ``False``.
+
+        strict_col_map : bool, optional
+            If ``True``, drop columns not explicitly defined in
+            ``ENTITY_MAP`` during schema adaptation. Defaults to
+            ``False``.
 
         Returns
         -------
         pl.LazyFrame
             A lazily evaluated Polars query representing the scanned
-            dataset, with column-name mapping and optional projection
+            dataset, with schema adaptation and optional projection
             applied.
 
         Raises
@@ -234,16 +209,16 @@ class Open(MemoryAwareProcess):
             construction.
 
         MemoryError
-            If ``low_mem`` is enabled and the estimated memory required 
-            to materialize the dataset exceeds the available memory 
+            If ``low_mem`` is enabled and the estimated memory required
+            to materialize the dataset exceeds the available memory
             budget.
 
         Notes
         -----
-        - Column projection is applied *after* entity-name mapping and
-        therefore operates on the public column schema.
+        - Schema adaptation is applied before column projection; the
+          ``columns`` argument therefore operates on the adapted schema.
         - This method performs no materialization; downstream consumers
-        must explicitly call ``collect()`` to execute the query.
+          must explicitly call ``collect()`` to execute the query.
         """
         if not self.source:
             msg = "Source not defined in class instance construction."
@@ -259,7 +234,11 @@ class Open(MemoryAwareProcess):
             root,
             low_memory=low_mem
         )
-        lf = self.map_names(lf)
+        lf = apply_entity_mapping(
+            lf,
+            reverse=reverse_col_map,
+            strict=strict_col_map
+        )
         # Column projection
         if columns is not None:
             lf = lf.select(list(columns))
@@ -267,44 +246,6 @@ class Open(MemoryAwareProcess):
         self.low_mem_state(lf, low_mem)
 
         return lf
-
-    def _apply_name_mapping(
-            self,
-            data: DataFrame,
-            *,
-            reverse: bool,
-        ) -> DataFrame:
-        """
-        Apply optional reverse column-name mapping to a 
-        DataFrame-like object.
-
-        This internal helper conditionally applies a reverse column-name 
-        mapping when ``reverse`` is enabled. Pandas and Polars inputs 
-        are handled appropriately using the corresponding renaming 
-        mechanisms. When ``reverse`` is ``False``, the input object is 
-        returned unchanged.
-
-        Parameters
-        ----------
-        data : DataFrame
-            Input DataFrame-like object (pandas or Polars, eager or 
-            lazy).
-        reverse : bool
-            If ``True``, apply the reverse entity-name mapping. If 
-            ``False``, return the input data unchanged.
-
-        Returns
-        -------
-        DataFrame
-            DataFrame-like object of the same type as the input, with 
-            column names optionally mapped in reverse.
-        """
-        if not reverse:
-            return data
-        if isinstance(data, pd.DataFrame):
-            return data.rename(REVERSE_ENTITY_MAP)
-        # Polars (lazy or eager)
-        return self.map_names(data, reverse=True)
 
     def _write_parquet(self, data: DataFrame, target: Address) -> None:
         """
@@ -343,17 +284,19 @@ class Open(MemoryAwareProcess):
     def write(
             self, 
             data: DataFrame, 
-            reverse_mapping: bool = False
+            reverse_mapping: bool = False,
+            strict_mapping: bool = False,
         ) -> None:
         """
         Write a DataFrame-like object to Parquet at the configured 
         source path.
 
-        This method persists a pandas or Polars DataFrame to disk in 
-        Parquet format using the source path defined during class 
-        construction. An optional reverse column-name mapping can be 
-        applied prior to writing, allowing internal column names to be 
-        converted back to their original or private representations.
+        This method persists a pandas or Polars DataFrame to disk in
+        Parquet format using the source path defined during class
+        construction. Prior to writing, schema adaptation (column
+        selection and entity-name mapping) is delegated to
+        ``apply_entity_mapping`` and may be applied in either direction
+        depending on the provided flags.
 
         Parameters
         ----------
@@ -361,8 +304,12 @@ class Open(MemoryAwareProcess):
             DataFrame-like object to be written. Supported types include
             pandas DataFrames and Polars DataFrames (eager or lazy).
         reverse_mapping : bool, optional
-            If ``True``, apply the reverse entity-name mapping before 
-            writing the data. Defaults to ``False``.
+            If ``True``, apply the reverse entity-name mapping during
+            schema adaptation before writing. Defaults to ``False``.
+        strict_mapping : bool, optional
+            If ``True``, drop columns not explicitly defined in
+            ``ENTITY_MAP`` during schema adaptation. Defaults to
+            ``False``.
 
         Returns
         -------
@@ -372,16 +319,23 @@ class Open(MemoryAwareProcess):
         Raises
         ------
         ValueError
-            If the source path was not defined during class 
+            If the source path was not defined during class
             construction.
+
+        Notes
+        -----
+        - Schema adaptation is applied uniformly across pandas and
+          Polars inputs via ``apply_entity_mapping``.
+        - This method does not perform any materialization beyond what
+          is required by the underlying Parquet write operation.
         """
         if not self.source:
             msg = "Source not defined in class instance construction."
             raise ValueError(msg)
-        
-        data = self._apply_name_mapping(
+        data = apply_entity_mapping(
             data,
             reverse=reverse_mapping,
+            strict=strict_mapping
         )
         self._write_parquet(data, self.source)
     
@@ -390,18 +344,21 @@ class Open(MemoryAwareProcess):
             location: Address, 
             name: str, 
             map_cols: bool = False, 
-            reverse_map_cols: bool = False, 
+            reverse_map_cols: bool = False,
+            strict_map: bool = False, 
             low_mem: bool = False
         ) -> pl.LazyFrame:
         """
         Lazily load a Parquet dataset from a specified location.
 
-        This method scans a Parquet file located at ``location / name`` 
-        and returns a Polars ``LazyFrame`` representing the dataset. 
-        Optional column name mapping can be applied at load time, and 
-        low-memory safety checks may be enforced prior to execution.
+        This method scans a Parquet file located at ``location / name``
+        and returns a Polars ``LazyFrame`` representing the dataset.
+        Schema adaptation (column selection and entity-name mapping) may
+        be applied at load time via ``apply_entity_mapping`` if enabled.
+        Optional low-memory safety checks can be enforced prior to
+        execution.
 
-        The data is read lazily using ``pl.scan_parquet``; no 
+        The data is read lazily using ``pl.scan_parquet``; no
         materialization occurs within this method.
 
         Parameters
@@ -409,33 +366,43 @@ class Open(MemoryAwareProcess):
         location : Address
             Base directory containing the Parquet dataset.
         name : str
-            Name of the Parquet file (or relative path) to load from 
+            Name of the Parquet file (or relative path) to load from
             ``location``.
         map_cols : bool, optional
-            If ``True``, apply the forward entity-name mapping defined in
-            ``ENTITY_MAP`` to rename columns after loading. Defaults to 
-            ``False``.
+            If ``True``, apply entity-name mapping during schema
+            adaptation after loading. Defaults to ``False``.
         reverse_map_cols : bool, optional
-            If ``True``, apply the reverse entity-name mapping defined in
-            ``REVERSE_ENTITY_MAP`` to rename columns after loading. 
-            Ignored if ``map_cols`` is ``True``. Defaults to ``False``.
+            If ``True``, apply the reverse entity-name mapping during
+            schema adaptation. Ignored if ``map_cols`` is ``False``.
+            Defaults to ``False``.
+        strict_map : bool, optional
+            If ``True``, drop columns not explicitly defined in
+            ``ENTITY_MAP`` during schema adaptation. Defaults to
+            ``False``.
         low_mem : bool, optional
-            If ``True``, enforce low-memory safeguards by performing a 
-            pre-execution memory safety check on the lazy query. 
+            If ``True``, enforce low-memory safeguards by performing a
+            pre-execution memory safety check on the lazy query.
             Defaults to ``False``.
 
         Returns
         -------
         pl.LazyFrame
-            A lazy Polars query representing the loaded dataset, with 
-            optional column-name mapping applied.
+            A lazy Polars query representing the loaded dataset, with
+            optional schema adaptation applied.
 
         Raises
         ------
         MemoryError
-            If ``low_mem`` is enabled and the estimated memory required 
-            to materialize the dataset exceeds the available memory 
+            If ``low_mem`` is enabled and the estimated memory required
+            to materialize the dataset exceeds the available memory
             budget.
+
+        Notes
+        -----
+        - Schema adaptation is applied only when ``map_cols`` is
+          enabled and is delegated to ``apply_entity_mapping``.
+        - This method performs no materialization; downstream consumers
+          must explicitly call ``collect()`` to execute the query.
         """
         location = validate_address(location)
         lf = pl.scan_parquet( # type: ignore[reportUnknownMemberType]
@@ -443,9 +410,12 @@ class Open(MemoryAwareProcess):
         ) 
         self.low_mem_state(lf, low_mem)
         if map_cols:
-            lf = lf.rename(ENTITY_MAP)
-        elif reverse_map_cols:
-            lf = lf.rename(REVERSE_ENTITY_MAP) 
+            lf = apply_entity_mapping(
+                lf, 
+                reverse=reverse_map_cols,
+                strict=strict_map,
+            )
+
         return lf
 
 def load_lazyframe(
@@ -455,6 +425,8 @@ def load_lazyframe(
         multi_file: bool = False,
         low_mem: bool = False,
         columns: Optional[Iterable[str]] = None,
+        reverse_col_map: bool = False,
+        strict_col_map: bool = False,
     ) -> pl.LazyFrame:
     """
     Lazily load a Parquet dataset as a Polars ``LazyFrame``.
@@ -465,10 +437,11 @@ def load_lazyframe(
     source address and returned as a Polars ``LazyFrame`` without
     immediately materializing the data into memory.
 
-    All path validation, column-name mapping, optional column
-    projection, and memory-safety checks are delegated to the ``Open``
-    context manager, ensuring consistent and centralized dataset access
-    semantics across the codebase.
+    All path validation, schema adaptation (column selection and
+    entity-name mapping), optional column projection, and memory-safety
+    checks are delegated to the ``Open`` context manager, ensuring
+    consistent and centralized dataset access semantics across the
+    codebase.
 
     Parameters
     ----------
@@ -476,32 +449,35 @@ def load_lazyframe(
         Path or address of the dataset to load. May refer to a single
         Parquet file or a directory containing multiple Parquet files,
         depending on ``multi_file``.
-
     verbose : Verbosity, optional
         Verbosity level forwarded to the ``Open`` context manager to
         control diagnostic output. Defaults to ``0``.
-
     multi_file : bool, optional
         If ``True``, all Parquet files found under ``source`` are 
         scanned and combined into a single logical lazy query. If 
         ``False``, only the file at ``source`` is scanned. Defaults to 
         ``False``.
-
     low_mem : bool, optional
-        If ``True``, enables low-memory safeguards during dataset
-        loading, including a pre-execution memory safety check.
-        Defaults to ``False``.
-
+        If ``True``, enable low-memory safeguards, including a
+        pre-execution memory safety check. Defaults to ``False``.
     columns : Iterable[str], optional
-        Optional list of column names (public schema) to project from
-        the dataset. When provided, only these columns are retained,
-        reducing I/O, memory usage, and downstream execution cost.
+        Optional list of column names to project from the dataset.
+        Column names must refer to the schema *after* entity-name
+        mapping has been applied. When provided, only these columns are
+        retained, reducing I/O, memory usage, and downstream execution
+        cost.
+    reverse_col_map : bool, optional
+        If ``True``, apply the reverse entity-name mapping during schema
+        adaptation. Defaults to ``False``.
+    strict_col_map : bool, optional
+        If ``True``, drop columns not explicitly defined in
+        ``ENTITY_MAP`` during schema adaptation. Defaults to ``False``.
 
     Returns
     -------
     pl.LazyFrame
-        A lazily evaluated Polars ``LazyFrame`` representing the 
-        dataset, with column-name mapping, optional projection, and 
+        A lazily evaluated Polars ``LazyFrame`` representing the
+        dataset, with schema adaptation, optional projection, and
         memory-safety checks applied.
 
     Raises
@@ -512,13 +488,10 @@ def load_lazyframe(
 
     Notes
     -----
-    - This function does not materialize the data; downstream consumers
+    - This function performs no materialization; downstream consumers
       must explicitly call ``collect()`` to execute the query.
-    - Column projection operates on the public column schema exposed by
-      the I/O layer.
-    - No dataset-specific constants or proprietary values are embedded
-      in this function, making it safe for reuse across projects and
-      environments.
+    - Schema adaptation and projection semantics are inherited directly
+      from ``Open.read``.
     """
     lf: pl.LazyFrame | None = None
     with Open(source, verbose=verbose) as o:
@@ -526,6 +499,8 @@ def load_lazyframe(
             multi_file=multi_file, 
             low_mem=low_mem,
             columns=columns,
+            reverse_col_map=reverse_col_map,
+            strict_col_map=strict_col_map,
         )
     if lf is None:
         raise RuntimeError("Failed to read data")
@@ -539,51 +514,55 @@ def load_pandas(
         multi_file: bool = False,
         low_mem: bool = False,
         columns: Optional[Iterable[str]] = None,
+        reverse_col_map: bool = False,
+        strict_col_map: bool = False,
     ) -> pd.DataFrame:
     """
-    Load a dataset into a pandas ``DataFrame`` via a Polars lazy 
+    Load a dataset into a pandas ``DataFrame`` via a Polars lazy
     execution plan.
 
     This function provides a convenience wrapper around
     ``load_lazyframe`` for workflows that require pandas compatibility.
-    The dataset is scanned lazily using Polars, optionally projected to
-    a subset of columns, materialized into memory using the specified
-    collection engine, and converted to a pandas ``DataFrame``.
+    The dataset is scanned lazily using Polars, optionally subjected to
+    schema adaptation (column selection and entity-name mapping),
+    materialized into memory using the specified collection engine, and
+    converted to a pandas ``DataFrame``.
 
-    All path validation, column-name mapping, optional column
-    projection, and memory-safety checks are delegated to the project's
-    standardized I/O layer, ensuring consistent dataset access semantics
-    across eager and lazy workflows.
+    All path validation, schema adaptation, optional column projection,
+    and memory-safety checks are delegated to the project's standardized
+    I/O layer, ensuring consistent dataset access semantics across eager
+    and lazy workflows.
 
     Parameters
     ----------
     source : Address
         Path or address of the dataset to load. May refer to a single
         file or a directory, depending on ``multi_file``.
-
     engine : CollectEngine, optional
         Polars collection engine used when materializing the lazy query
         plan (e.g., ``"streaming"`` or ``"gpu"``). Defaults to
         ``"streaming"``.
-
     verbose : Verbosity, optional
-        Verbosity level forwarded to the underlying I/O layer.
-        Defaults to ``0``.
-
+        Verbosity level forwarded to the underlying I/O layer. Defaults
+        to ``0``.
     multi_file : bool, optional
         If ``True``, all compatible files under ``source`` are scanned
         and combined into a single logical dataset. Defaults to
         ``False``.
-
     low_mem : bool, optional
-        If ``True``, enables memory-safety checks during loading and
+        If ``True``, enable memory-safety checks during loading and
         collection. Defaults to ``False``.
-
     columns : Iterable[str], optional
-        Optional list of column names (public schema) to project from
-        the dataset prior to materialization. When provided, only these
-        columns are loaded, reducing I/O, memory usage, and conversion
-        cost.
+        Optional list of column names to project from the dataset.
+        Column names must refer to the schema *after* entity-name
+        mapping has been applied. When provided, only these columns are
+        loaded, reducing I/O, memory usage, and conversion cost.
+    reverse_col_map : bool, optional
+        If ``True``, apply the reverse entity-name mapping during schema
+        adaptation. Defaults to ``False``.
+    strict_col_map : bool, optional
+        If ``True``, drop columns not explicitly defined in
+        ``ENTITY_MAP`` during schema adaptation. Defaults to ``False``.
 
     Returns
     -------
@@ -599,10 +578,8 @@ def load_pandas(
     -----
     - This function eagerly materializes the dataset into memory; for
       large datasets, prefer ``load_lazyframe`` and defer collection.
-    - Column projection is applied before materialization and operates
-      on the public column schema exposed by the I/O layer.
-    - No dataset-specific constants, paths, or proprietary thresholds
-      are embedded in this function.
+    - Schema adaptation and projection semantics are inherited directly
+      from ``load_lazyframe`` and ``Open.read``.
     """
     lf = load_lazyframe(
         source,
@@ -610,6 +587,7 @@ def load_pandas(
         multi_file=multi_file,
         low_mem=low_mem,
         columns=columns,
-        
+        reverse_col_map=reverse_col_map,
+        strict_col_map=strict_col_map,
     )
     return lf.collect(engine=engine).to_pandas()
