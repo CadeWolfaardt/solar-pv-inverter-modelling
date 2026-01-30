@@ -3,6 +3,35 @@ name = "pv-inverter-modelling"
 version = "0.1.0"
 description = "Data-driven modelling of Solar PV inverters featuring Anomaly detection, Digital Twin, Forecasting, Survival Analysis, and Predictive Maintenance"
 
+dependencies = [
+    "astral>=3.2",
+    "cycler>=0.12",
+    "joblib>=1.5",
+    "keras>=3.13",
+    "lifelines>=0.30",
+    "matplotlib>=3.8",
+    "numpy>=2.4",
+    "pandas>=3.0",
+    "polars>=1.36",
+    "psutil>=7.1",
+    "python-dotenv>=1.2",
+    "scikit-learn>=1.8",
+    "torch>=2.9",
+    "tqdm>=4.67",
+    "xgboost>=3.1",
+]
+
+[project.optional-dependencies]
+scripts = [
+    "chronos>=0.3",
+    "seaborn>=0.13.2",
+    "statsmodels>=0.14.6"
+]
+
+interactive = [
+    "ipython>=8.25"
+]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
@@ -11,3 +40,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 pv_inverter_dt = ["py.typed"]
+
+[tool.deptry.per_rule_ignores]
+DEP003 = ["pv_inverter_modeling"]
