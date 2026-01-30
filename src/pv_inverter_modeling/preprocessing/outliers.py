@@ -40,7 +40,7 @@ class OutlierDetector(object):
             self, 
             lf: pl.LazyFrame, 
             keys: Tuple[Column, ...] = (Column.DEVICE, Column.TIMESTAMP)
-        ) -> pl.LazyFrame:
+        ) -> Tuple[pl.LazyFrame, pl.LazyFrame]:
         """
         Apply both broad outlier masking and efficiency-based outlier 
         masking.
@@ -55,16 +55,24 @@ class OutlierDetector(object):
         
         Returns
         -------
-        pl.LazyFrame
-            LazyFrame with outliers masked as nulls, sorted by `keys`.
+        Tuple[pl.LazyFrame, pl.LazyFrame]
+            LazyFrame with outliers masked as nulls, sorted by `keys`,
+            and LazyFrame containing only original columns with outliers
+            masked as null, sorted by `keys`.
         """
         lf = lf.clone()
         # Mask broad outliers
         lf = self.get_broad_outliers(lf)
         # Get efficiency outliers
         lf, _ = self.get_eff_outliers(lf)
+        masked_orig = lf.drop([
+            Metric.EFFICIENCY, 
+            Metric.CONSTRAINED_REGIME, 
+            Metric.NORMAL_REGIME, 
+            Metric.OTHER_REGIME
+        ])
         # return masked lf
-        return lf.sort(keys)
+        return lf.sort(keys), masked_orig.sort(keys)
     
     def __validate_cols_found(
             self, required: Tuple[Union[Column, Metric], ...], 
