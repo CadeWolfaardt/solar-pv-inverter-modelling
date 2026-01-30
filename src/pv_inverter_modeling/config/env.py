@@ -2,6 +2,7 @@
 import os
 import json
 from pathlib import Path
+from datetime import datetime, timedelta
 from typing import Callable, TypeVar, Dict, cast, Iterable, Tuple
 # thirdpartylib
 from dotenv import load_dotenv
@@ -66,6 +67,12 @@ LON = float(fetch_var("LON"))
 SITE_TZ = fetch_var("SITE_TZ")
 COUNTRY = fetch_var("COUNTRY")
 DEVICE_RATING = float(fetch_var("DEVICE_RATING"))
+TRAIN_TEST_SPLIT_AT = datetime.fromisoformat(
+    fetch_var("TRAIN_TEST_SPLIT_AT")
+)
+TRAIN_TEST_SPLIT_BUFFER_DAYS = timedelta(
+    days=int(fetch_var("TRAIN_TEST_SPLIT_BUFFER_DAYS"))
+)
 DAYLIGHT_MAP = cast(
     Dict[int, Tuple[int, int]],
     fetch_json_map("DAYLIGHT_MAP_JSON", int, lambda v: tuple(v))
