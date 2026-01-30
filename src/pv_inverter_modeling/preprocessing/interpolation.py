@@ -6,7 +6,8 @@ from typing import (
     Unpack, 
     Dict, 
     Union, 
-    Iterable, 
+    Iterable,
+    Mapping,
     cast
 )
 from datetime import datetime
@@ -33,8 +34,6 @@ from pv_inverter_modeling.utils.typing import (
 from pv_inverter_modeling.data.schemas import Column, Metric, KEYS
 from pv_inverter_modeling.config.env import (
     DAYLIGHT_MAP,
-    FULL_INTERPOLATION_MAP,
-    BASE_INTERPOLATION_MAP,
     DATA_ROOT
 )
 from pv_inverter_modeling.utils.paths import validate_address
@@ -363,7 +362,7 @@ class InterpolationTester(object):
             pl.col(Column.TIMESTAMP).cast(pl.Datetime("us"))
         )
         # Collect dataframe
-        df = lf.sort(KEYS).collect()
+        df = lf.sort(KEYS).collect(engine='streaming')
         # Pivot the table
         if pivot_df:
             df = (
@@ -386,15 +385,11 @@ class InterpolationTester(object):
             parts = df.partition_by(Column.DEVICE, maintain_order=True)
             groups = {g[Column.DEVICE][0]: g for g in parts}
         
-        inv_dfs: Dict[str, pd.DataFrame] = {
-            self.__normalize_key(name): ( # pyright: ignore[reportArgumentType]
-                g.drop(Column.DEVICE)
-                .to_pandas()
-                .set_index(Column.TIMESTAMP)
-                .sort_index()
-            )
-            for name, g in groups.items()
-        }
+        inv_dfs: Dict[str, pd.DataFrame] = {}
+        for name, g in groups.items():
+            pdf = g.drop(Column.DEVICE).to_pandas()
+            pdf = pdf.set_index(Column.TIMESTAMP).sort_index()
+            inv_dfs[self.__normalize_key(name)] = pdf
         
         return inv_dfs
 
@@ -556,7 +551,7 @@ class InterpolationTester(object):
                 columns=["device", "metric", "method", "MAE", "RMSE"]
             )
         )
-        local_keys = ("device", "metric")
+        local_keys = ["device", "metric"]
         # Ranking by RMSE
         if not final_df.empty:
             best_idx = (
@@ -916,41 +911,50 @@ class Interpolator(object):
     def interpolate(
             self, 
             lf: pl.LazyFrame, 
-            mode: DataMode = "full",
+            interpolation_map: Mapping[Metric, InterpMethod],
             order: Optional[int] = 3, 
             pivot: bool = False
         ) -> pd.DataFrame:
         """
-        Interpolate time-series metrics for each device after applying
-        per-day data quality filtering.
+        Interpolate time-series metrics per device using metric-specific
+        interpolation methods after filtering invalid days.
 
-        This method first evaluates daily data-quality rules to 
-        determine which days should be retained, then applies 
-        metric-specific interpolation methods to the remaining 
-        observations for each device. Interpolation is performed 
-        independently per device and metric, using predefined method 
-        mappings determined by the selected mode.
+        This method first evaluates the input LazyFrame to identify days
+        that satisfy data-quality constraints (via ``__clean_lf``). Only
+        observations belonging to those retained days are used for
+        interpolation.
 
-        Only days that satisfy all quality criteria are included in the
-        interpolation step. Interpolation is restricted to gaps fully
-        enclosed by valid data (i.e., no extrapolation beyond observed
-        ranges).
+        Interpolation is then applied independently for each device and
+        each metric according to the provided ``interpolation_map``.
+        Gaps are interpolated only when they are fully bounded by valid
+        observations (i.e., no extrapolation beyond observed ranges).
+
+        Parameters
+        ----------
+        lf : pl.LazyFrame
+            Input LazyFrame containing time-series measurements across
+            devices and metrics.
+        interpolation_map : Mapping[Metric, InterpMethod]
+            Mapping from metric identifiers to pandas interpolation
+            methods to apply for each metric.
+        order : int, optional
+            Order of the interpolation method (used for polynomial- or
+            spline-based methods). Ignored by methods that do not 
+            require an order. Default is 3.
+        pivot : bool, optional
+            Whether the LazyFrame is already pivoted into wide format
+            before interpolation. Default is False.
 
         Returns
         -------
         pd.DataFrame
-            Interpolated time-series data across all devices, indexed 
-            by the standard key set and sorted chronologically.
+            Interpolated time-series data for all devices, indexed by 
+            the standard key set and sorted chronologically.
         """
         days_to_keep, inv_dfs = self.__clean_lf(lf, pivot=pivot)
         limit_direction = 'both'
         limit_area = "inside"
-        # Dictp[str, str] mapping metric to interpolation method
-        if mode == "full":
-            interp_map = FULL_INTERPOLATION_MAP
-        else:
-            interp_map = BASE_INTERPOLATION_MAP
-    
+        interp_map_items = interpolation_map.items()
         for device, df in tqdm(inv_dfs.items(), desc="Inverters"):
                 df = df.copy()
                 # if the datetime is a column
@@ -971,7 +975,7 @@ class Interpolator(object):
                         )
                     ].copy()
                     
-                for metric, method in tqdm(interp_map.items(), desc="Metrics"):
+                for metric, method in tqdm(interp_map_items, desc="Metrics"):
                     s = df[metric]
                     df[metric] = s.interpolate(
                         method=method, 
@@ -979,12 +983,15 @@ class Interpolator(object):
                         limit_direction=limit_direction, 
                         limit_area=limit_area
                     )
-
-                df = df.assign(device_name=device)
-                df = df.assign(event_local_time=df.index)
+                df[Column.DEVICE] = device
+                df[Column.TIMESTAMP] = df.index
                 inv_dfs[device] = df
     
-        self.final = pd.concat(inv_dfs.values()).set_index(KEYS).sort_index()
+        self.final = (
+            pd.concat(inv_dfs.values())
+            .set_index(list(KEYS))
+            .sort_index()
+        )
         return self.final
 
     def write_parquet(self, dest: Address = DATA_ROOT, 
