@@ -99,6 +99,8 @@ type InterpMethods = Tuple[InterpMethod, ...]
 type Field = Union[Column, Metric]
 # DataFrame for plotting
 type DataFrame = Union[PolarsLazyFrame, PolarsDataFrame, PandasDataFrame]
+# Polars Dataframe and Lazyframe type used in script/digital_twin.py
+TPolars = TypeVar("TPolars", PolarsDataFrame, PolarsLazyFrame)
 # Aggregation functions for pivoting table
 type GenericAggregation = Literal[
     'min',
