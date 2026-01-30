@@ -71,6 +71,10 @@ class Metric(StrEnum):
     TRACKER_ANGLE_SETPOINT = 'tracker_angle_setpoint'
     POA_MEDIAN = 'poa_median'
     MEAN_POWER = 'mean_ac_power'
+    EFFICIENCY = 'efficiency'
+    CONSTRAINED_REGIME = 'constrained_regime'
+    NORMAL_REGIME = 'normal_regime'
+    OTHER_REGIME = 'other_regime'
 
 # Keys for sorting data
 KEYS = (Column.DEVICE.value, Column.TIMESTAMP.value)
