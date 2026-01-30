@@ -9,7 +9,6 @@ from types import TracebackType
 from pathlib import Path
 # thirdpartylib
 import psutil
-from IPython.core.getipython import get_ipython
 import polars as pl
 # projectlib
 from pv_inverter_modeling.utils.typing import Verbosity, Address, SizeUnit
@@ -77,6 +76,7 @@ class MemoryAwareProcess(object):
         """
         if(clear_cache):
             try:
+                from IPython.core.getipython import get_ipython
                 ip = get_ipython()
                 if ip and ip.history_manager is not None:
                     ip.history_manager.output_cache.clear()

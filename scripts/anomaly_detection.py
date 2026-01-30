@@ -3,9 +3,6 @@ import argparse
 # thirdpartylib
 import matplotlib.pyplot as plt
 import seaborn as sns
-from IPython.display import (
-    display # pyright: ignore[reportUnknownVariableType]
-)
 import polars as pl
 # projectlib
 from pv_inverter_modeling.config.env import (
@@ -167,6 +164,9 @@ def main() -> None:
     )
     print("\nOverall Anomalies for Plotting (Head):")
     if running_in_ipython_kernel():
+        from IPython.display import (
+           display # pyright: ignore[reportUnknownVariableType]
+        )
         display(overall_anomalies_for_plot.head())
     else:
         print(overall_anomalies_for_plot.head())
