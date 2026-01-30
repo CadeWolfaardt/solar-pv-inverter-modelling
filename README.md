@@ -136,6 +136,7 @@ All real site-specific configuration must be provided locally via a private `.en
 
 The `private_map.example.py` file contains placeholder values only.
 All real site-specific configuration must be provided locally via a private `private_map.py` file.
+
 ---
 
 ## 📄 Citation
